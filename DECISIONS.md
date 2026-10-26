@@ -10,3 +10,8 @@
 - **Deadline:** the day before delivery at a chosen time (default 09:50, the N2EX auction close), counting runs published *at or before* it, because that is what a trader really had.
 - **Picking:** per delivery hour, the newest forecast for that hour published by the deadline. In January with 06:00–11:00 deadlines this always matches "newest run", but it never leaves an hour empty if a run is short (e.g. a 22:30 run).
 - **Time zone:** treat everything as UTC, because January is GMT so UK time = UTC. Known limit: summer (BST) would need `Europe/London`.
+
+## Step 3 – Forecast-picking function
+- **Plain Python, no pandas:** data is small (~20k rows), code is easier to explain line by line, and the deploy stays light.
+- **pytest:** plain `assert` tests with clear failure messages; dev-only dependency.
+- **One day at a time:** `pick_forecasts(rows, day, decision_time)` returns the 24 hours, matching the Day view; the January view calls it per day.
