@@ -136,8 +136,8 @@ function PlanByWindLevel({ groups }: { groups: Group<number>[] }) {
               <TableHead>Forecast says</TableHead>
               <TableHead className="text-right">Plan for</TableHead>
               <TableHead className="text-right">Usually ran</TableHead>
-              <TableHead className="text-right">Average miss</TableHead>
-              <TableHead className="text-right">Hours</TableHead>
+              <TableHead className="hidden text-right sm:table-cell">Average miss</TableHead>
+              <TableHead className="hidden text-right sm:table-cell">Hours</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -149,9 +149,11 @@ function PlanByWindLevel({ groups }: { groups: Group<number>[] }) {
                       {WIND_LEVELS[group]}
                     </TableHead>
                     <TableCell className="text-right font-semibold">±{gw(s.p90)}</TableCell>
-                    <TableCell className={`text-right ${missColour(s.bias)}`}>{missText(s.bias)}</TableCell>
-                    <TableCell className="text-right">{gw(s.mae)}</TableCell>
-                    <TableCell className="text-right text-muted-foreground">{s.hours}</TableCell>
+                    <TableCell className={`text-right whitespace-normal ${missColour(s.bias)}`}>
+                      {missText(s.bias)}
+                    </TableCell>
+                    <TableCell className="hidden text-right sm:table-cell">{gw(s.mae)}</TableCell>
+                    <TableCell className="hidden text-right text-muted-foreground sm:table-cell">{s.hours}</TableCell>
                   </TableRow>
                 ),
             )}
@@ -212,7 +214,7 @@ function Breakdown<K extends string | number>(props: {
             <TableHeader>
               <TableRow>
                 <TableHead>Group</TableHead>
-                <TableHead className="text-right">Hours</TableHead>
+                <TableHead className="hidden text-right sm:table-cell">Hours</TableHead>
                 <TableHead className="text-right">Average miss</TableHead>
                 <TableHead className="text-right">Usually ran</TableHead>
               </TableRow>
@@ -229,9 +231,9 @@ function Breakdown<K extends string | number>(props: {
                       r.label
                     )}
                   </TableHead>
-                  <TableCell className="text-right">{r.summary.hours}</TableCell>
+                  <TableCell className="hidden text-right sm:table-cell">{r.summary.hours}</TableCell>
                   <TableCell className="text-right">{gw(r.summary.mae)}</TableCell>
-                  <TableCell className={`text-right ${missColour(r.summary.bias)}`}>
+                  <TableCell className={`text-right whitespace-normal ${missColour(r.summary.bias)}`}>
                     {missText(r.summary.bias)}
                   </TableCell>
                 </TableRow>

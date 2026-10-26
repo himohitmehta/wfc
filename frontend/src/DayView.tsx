@@ -274,7 +274,9 @@ function BiggestMisses({ hours }: { hours: HourRow[] }) {
                 </TableHead>
                 <TableCell className="text-right">{gw(h.forecast)}</TableCell>
                 <TableCell className="text-right">{gw(h.actual)}</TableCell>
-                <TableCell className={`text-right ${missColour(h.error)}`}>{missText(h.error)}</TableCell>
+                <TableCell className={`text-right whitespace-normal ${missColour(h.error)}`}>
+                  {missText(h.error)}
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>

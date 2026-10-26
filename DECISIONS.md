@@ -85,3 +85,8 @@
 - **Vercel Services (one project):** `/api/*` → FastAPI service (`backend/`, entrypoint `src.backend.api:app`), everything else → Vite service (`frontend/`). Same site, no CORS; the API's 1-day cache header lets the CDN answer repeat requests. Services is beta but on all plans.
 - **One Docker container:** multi-stage build (Node builds React, Python 3.12 + uv runs FastAPI); FastAPI serves the built React app only when `FRONTEND_DIST` is set, so Vercel and local dev are unchanged.
 - **Cache header only on `/api/`:** a cached `index.html` would show an old page after a redeploy.
+
+## Phone-width fixes (checked at 360, 390 and 768 px)
+- Number strip: an odd last tile spans both columns on phones, so there's no empty cell; values are one size smaller on phones so "6.9 GW too high" fits on one line.
+- Chart hour labels skip as needed instead of colliding; "too high/too low" cells wrap instead of being cut off.
+- Planning table on phones keeps the three columns a buyer needs (forecast level, band, lean); "Average miss" and "Hours" show from tablet width up.

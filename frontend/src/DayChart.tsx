@@ -65,7 +65,7 @@ export function DayChart({ hours }: { hours: HourRow[] }) {
           desc="Hourly wind forecast compared with actual output. Use left and right arrow keys to move between hours."
         >
           <CartesianGrid stroke="var(--border)" vertical={false} />
-          <XAxis dataKey="hour" interval={2} {...axisProps} />
+          <XAxis dataKey="hour" interval="preserveStartEnd" minTickGap={16} {...axisProps} />
           <YAxis unit=" GW" width={56} tickFormatter={(v: number) => v.toFixed(0)} {...axisProps} />
           <Area dataKey="tooHigh" fill="var(--short)" fillOpacity={0.25} stroke="none" isAnimationActive={false} />
           <Area dataKey="tooLow" fill="var(--long)" fillOpacity={0.25} stroke="none" isAnimationActive={false} />

@@ -36,11 +36,11 @@ function Value({ value, delta }: Pick<Tile, 'value' | 'delta'>) {
 export function StatTiles({ tiles, strip = false }: { tiles: Tile[]; strip?: boolean }) {
   if (strip)
     return (
-      <dl className="grid grid-cols-2 overflow-hidden rounded-lg border sm:grid-cols-[repeat(auto-fit,minmax(140px,1fr))]">
+      <dl className="grid grid-cols-2 overflow-hidden rounded-lg border sm:grid-cols-[repeat(auto-fit,minmax(140px,1fr))] max-sm:[&>*:last-child:nth-child(odd)]:col-span-2">
         {tiles.map(({ label, value, note, delta }) => (
           <div key={label} className="-mb-px -mr-px border-r border-b px-3 py-2.5">
             <dt className="text-xs text-muted-foreground">{label}</dt>
-            <div className="text-lg font-semibold tabular-nums">
+            <div className="text-base font-semibold tabular-nums sm:text-lg">
               <Value value={value} delta={delta} />
             </div>
             {note && <p className="text-xs text-muted-foreground">{note}</p>}
@@ -57,7 +57,7 @@ export function StatTiles({ tiles, strip = false }: { tiles: Tile[]; strip?: boo
             <CardDescription>
               <dt>{label}</dt>
             </CardDescription>
-            <CardTitle className="text-lg font-semibold tabular-nums group-data-[size=sm]/card:text-lg">
+            <CardTitle className="font-semibold tabular-nums group-data-[size=sm]/card:text-base sm:group-data-[size=sm]/card:text-lg">
               <Value value={value} delta={delta} />
             </CardTitle>
           </CardHeader>
