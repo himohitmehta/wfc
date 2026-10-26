@@ -32,9 +32,15 @@ Every choice and its reason is in [`DECISIONS.md`](DECISIONS.md). A UX review of
 
 ## Screens
 
-- **Day view:** pick a delivery day and decision time. It shows which forecast you'd have used, a one-sentence answer ("The forecast said 11.5 GW of wind. It was 9.3 GW. Buying to this forecast left you 2.1 GW short on average."), the numbers compared with January, an hour-by-hour chart (hover, tap or use the arrow keys), and the biggest misses.
-- **January accuracy:** the planning number, which way it leaned, a "plan for ±X" table by forecast wind level, the average miss by day (click a day to open it) and by hour, how the numbers are worked out, and a CSV download.
-- **States:** loading, couldn't load (with Try again), a day outside the pilot, missing actuals, and an old-forecast warning. Works at phone width and with the keyboard. Follows the device's light or dark mode. Every view has a shareable URL, for example `/?day=2026-01-06&time=08:00`.
+**Day view:** pick a delivery day and decision time. It shows which forecast you'd have used, a one-sentence answer ("The forecast said 11.5 GW of wind. It was 9.3 GW. Buying to this forecast left you 2.1 GW short on average."), the numbers compared with January, an hour-by-hour chart (hover, tap or use the arrow keys), and the biggest misses.
+
+![Day view for 6 January 2026: forecast 11.5 GW vs actual 9.3 GW, with the hour-by-hour chart](docs/screenshots/day-view.jpg)
+
+**January accuracy:** the planning number, which way it leaned, a "plan for ±X" table by forecast wind level, the average miss by day (click a day to open it) and by hour, how the numbers are worked out, and a CSV download.
+
+![January accuracy view: within ±4.2 GW in 9 of 10 hours, and the plan-for table by forecast wind level](docs/screenshots/january-view.jpg)
+
+**States:** loading, couldn't load (with Try again), a day outside the pilot, missing actuals, and an old-forecast warning. Works at phone width and with the keyboard. Follows the device's light or dark mode. Every view has a shareable URL, for example `/?day=2026-01-06&time=08:00`.
 
 ## Files and folders
 
@@ -57,7 +63,7 @@ Every choice and its reason is in [`DECISIONS.md`](DECISIONS.md). A UX review of
 │       ├── api.ts            API types and fetching (React Query, cached)
 │       ├── format.ts         All GW formatting and wording
 │       └── components/ui/    shadcn components (generated)
-├── docs/ux-audit.md          UX audit and what was fixed
+├── docs/                     UX audit (ux-audit.md) and screenshots
 ├── Dockerfile                One container: builds the frontend, serves it with the API
 ├── vercel.json               Vercel Services: /api -> backend, everything else -> frontend
 └── DECISIONS.md              Every decision and why
