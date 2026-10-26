@@ -60,3 +60,9 @@
 - **Outside the pilot:** checked in the browser before any request; clear message plus "Go to 2 Jan / 1 Feb" buttons, never a silent jump to another day.
 - **Couldn't load:** React Query retries twice, then a plain-English message with "Try again". **Missing actuals:** a note listing the missing hours, numbers use the rest.
 - **Keyboard:** Recharts' built-in layer – Tab to the chart, arrow keys move between hours. Known limit: the chart's focus box has no spoken name; the "Show all 24 hours" table is the screen-reader alternative.
+
+## shadcn restyle (polish step)
+- **shadcn/ui (Radix base, "nova" style) + Tailwind v4:** consistent, accessible components – Tabs, Button, Card, Table, Alert, Skeleton, Collapsible, Input. Behaviour, URLs and numbers unchanged.
+- **NativeSelect for decision time, native date box kept:** phones get their own pickers; both styled like shadcn.
+- **Charts stay our tested Recharts code**, only recoloured with theme variables (`--short`, `--long`, `--forecast`, `--actual`) so they match light and dark.
+- **Dark mode follows the device** (`prefers-color-scheme`), no toggle; `color-scheme: light dark` so native controls match.

@@ -1,9 +1,15 @@
+import { ChevronDown, Download } from 'lucide-react'
 import { useState } from 'react'
 import { Bar, BarChart, CartesianGrid, Rectangle, Tooltip, XAxis, YAxis, type TooltipContentProps } from 'recharts'
+import { Button } from '@/components/ui/button'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useApi, type Group, type JanuaryResponse, type Summary } from './api'
 import { TimeField } from './DayView'
 import { dayName, direction, gw, signedGw } from './format'
-import { LoadError, Skeleton } from './states'
+import { StatTiles } from './StatTiles'
+import { LoadError, ResultsSkeleton } from './states'
+import { axisProps, missColour, tooltipBox } from './theme'
 import type { Change } from './url'
 
 const WIND_LEVELS: Record<number, string> = { 0: 'Under 5 GW', 5: '5–10 GW', 10: '10–15 GW', 15: '15 GW and over' }
@@ -13,19 +19,19 @@ export function JanuaryView({ time, onChange }: { time: string; onChange: (c: Ch
 
   return (
     <>
-      <div className="controls">
+      <div className="mb-4">
         <TimeField time={time} onChange={onChange} />
       </div>
       {error ? (
         <LoadError what="January" error={error} retry={retry} retrying={loading} />
       ) : !data?.summary ? (
-        <Skeleton chartClass="bar-box" tiles={4} />
+        <ResultsSkeleton chartHeight="h-44 sm:h-56" tiles={4} />
       ) : (
-        <div aria-busy={loading} className="results">
-          <p className="answer">
+        <div aria-busy={loading} className="space-y-4 transition-opacity aria-busy:opacity-60 motion-reduce:transition-none">
+          <p className="text-lg font-semibold sm:text-xl">
             In 9 of every 10 hours, actual wind was within ±{gw(data.summary.p90)} of the forecast.
           </p>
-          <p className="muted">
+          <p className="text-sm text-muted-foreground">
             Forecasts available at {time} the day before, delivery days {dayName(data.first_day)} to{' '}
             {dayName(data.last_day)} 2026.
           </p>
@@ -54,11 +60,12 @@ export function JanuaryView({ time, onChange }: { time: string; onChange: (c: Ch
           />
 
           <HowWorkedOut time={time} />
-          <p>
-            <a className="button" href={`/api/january.csv?decision_time=${time}`} download>
+          <Button variant="outline" asChild>
+            <a href={`/api/january.csv?decision_time=${time}`} download>
+              <Download />
               Download all {data.summary.hours} hours (CSV)
             </a>
-          </p>
+          </Button>
         </div>
       )}
     </>
@@ -66,24 +73,15 @@ export function JanuaryView({ time, onChange }: { time: string; onChange: (c: Ch
 }
 
 function Tiles({ s }: { s: Summary }) {
-  const tiles = [
-    ['Average miss', gw(s.mae), 'either way'],
-    ['Direction', signedGw(s.bias), direction(s.bias)],
-    ['Hours compared', String(s.hours), '31 delivery days'],
-    ['Biggest miss', signedGw(s.biggest.error), dayName(s.biggest.startTime.slice(0, 10))],
-  ]
   return (
-    <dl className="tiles">
-      {tiles.map(([label, value, note]) => (
-        <div key={label} className="tile">
-          <dt>{label}</dt>
-          <dd>
-            {value}
-            <small>{note}</small>
-          </dd>
-        </div>
-      ))}
-    </dl>
+    <StatTiles
+      tiles={[
+        ['Average miss', gw(s.mae), 'either way'],
+        ['Direction', signedGw(s.bias), direction(s.bias)],
+        ['Hours compared', String(s.hours), '31 delivery days'],
+        ['Biggest miss', signedGw(s.biggest.error), dayName(s.biggest.startTime.slice(0, 10))],
+      ]}
+    />
   )
 }
 
@@ -93,13 +91,13 @@ function GroupTooltip({ active, payload }: TooltipContentProps) {
   const r = payload?.[0]?.payload as Row<unknown> | undefined
   if (!active || !r) return null
   return (
-    <div className="tooltip">
+    <div className={tooltipBox}>
       <strong>{r.label}</strong>
       <div>Average miss {gw(r.summary.mae)}</div>
       <div>
         Direction {signedGw(r.summary.bias)} ({direction(r.summary.bias)})
       </div>
-      <div className="muted">{r.summary.hours} hours</div>
+      <div className="text-muted-foreground">{r.summary.hours} hours</div>
     </div>
   )
 }
@@ -119,49 +117,48 @@ function Breakdown<K extends string | number>(props: {
   )
 
   return (
-    <section>
-      <h2>{title}</h2>
-      {hint && <p className="muted">{hint}</p>}
+    <section className="pt-6">
+      <h2 className="text-base font-semibold">{title}</h2>
+      {hint && <p className="mb-2 text-sm text-muted-foreground">{hint}</p>}
       {asTable ? (
-        <div className="table-scroll">
-        <table>
-          <thead>
-            <tr>
-              <th scope="col">Group</th>
-              <th scope="col">Hours</th>
-              <th scope="col">Average miss</th>
-              <th scope="col">Direction</th>
-            </tr>
-          </thead>
-          <tbody>
+        <Table className="tabular-nums">
+          <TableHeader>
+            <TableRow>
+              <TableHead>Group</TableHead>
+              <TableHead className="text-right">Hours</TableHead>
+              <TableHead className="text-right">Average miss</TableHead>
+              <TableHead className="text-right">Direction</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {rows.map((r) => (
-              <tr key={String(r.key)}>
-                <th scope="row">
+              <TableRow key={String(r.key)}>
+                <TableHead scope="row" className="font-medium text-foreground">
                   {onSelect ? (
-                    <button className="link inline" onClick={() => onSelect(r.key)}>
+                    <Button variant="link" className="h-auto px-0" onClick={() => onSelect(r.key)}>
                       {r.label}
-                    </button>
+                    </Button>
                   ) : (
                     r.label
                   )}
-                </th>
-                <td>{r.summary.hours}</td>
-                <td>{gw(r.summary.mae)}</td>
-                <td className={r.summary.bias > 0 ? 'too-high' : 'too-low'}>
-                  {signedGw(r.summary.bias)} <span className="muted">{direction(r.summary.bias)}</span>
-                </td>
-              </tr>
+                </TableHead>
+                <TableCell className="text-right">{r.summary.hours}</TableCell>
+                <TableCell className="text-right">{gw(r.summary.mae)}</TableCell>
+                <TableCell className="text-right">
+                  <span className={missColour(r.summary.bias)}>{signedGw(r.summary.bias)}</span>{' '}
+                  <span className="text-muted-foreground">{direction(r.summary.bias)}</span>
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
-        </div>
+          </TableBody>
+        </Table>
       ) : (
-        <div className="bar-box">
+        <div className="h-44 sm:h-56">
         <BarChart responsive style={{ width: '100%', height: '100%' }} data={rows} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
           <CartesianGrid stroke="var(--border)" vertical={false} />
-          <XAxis dataKey="tick" tick={{ fill: 'var(--muted)', fontSize: 12 }} stroke="var(--border)" interval="preserveStartEnd" />
-          <YAxis unit=" GW" width={56} tick={{ fill: 'var(--muted)', fontSize: 12 }} stroke="var(--border)" />
-          <Tooltip content={GroupTooltip} cursor={{ fill: 'var(--surface)' }} />
+          <XAxis dataKey="tick" {...axisProps} interval="preserveStartEnd" />
+          <YAxis unit=" GW" width={56} {...axisProps} />
+          <Tooltip content={GroupTooltip} cursor={{ fill: 'var(--muted)' }} />
           <Bar
             dataKey="mae"
             isAnimationActive={false}
@@ -175,18 +172,24 @@ function Breakdown<K extends string | number>(props: {
         </BarChart>
         </div>
       )}
-      <button className="link" onClick={() => setAsTable(!asTable)}>
+      <Button variant="link" className="px-0" onClick={() => setAsTable(!asTable)}>
         {asTable ? 'Show as chart' : 'Show as table'}
-      </button>
+      </Button>
     </section>
   )
 }
 
 function HowWorkedOut({ time }: { time: string }) {
   return (
-    <details className="how">
-      <summary>How these numbers are worked out</summary>
-      <ul>
+    <Collapsible className="mt-8 rounded-xl bg-card px-4 py-2 ring-1 ring-foreground/10">
+      <CollapsibleTrigger asChild>
+        <Button variant="ghost" className="group -mx-2 w-full justify-between px-2">
+          How these numbers are worked out
+          <ChevronDown className="transition-transform group-data-[state=open]:rotate-180" />
+        </Button>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+      <ul className="list-disc space-y-2 py-2 pl-5 text-sm">
         <li>
           <strong>Forecast used:</strong> for each delivery hour, the newest Elexon wind forecast (WINDFOR) published at or
           before {time} UK time the day before. January is GMT, so UK time is UTC.
@@ -211,6 +214,7 @@ function HowWorkedOut({ time }: { time: string }) {
           output is lower than the wind allowed, so the forecast can look too high.
         </li>
       </ul>
-    </details>
+      </CollapsibleContent>
+    </Collapsible>
   )
 }
