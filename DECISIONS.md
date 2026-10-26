@@ -29,3 +29,10 @@
 - **One route per screen:** `/api/day`, `/api/january`, `/api/january.csv`. Each screen makes one call and all maths stays in tested Python. Backend sends plain MW; frontend formats GW and wording.
 - **Wind level grouped by forecast:** it's what the trader knows at 09:50, so the table reads "when the forecast says 15+ GW, expect a miss of ~2.8 GW" (vs ~1.3 GW under 5 GW).
 - **Odd requests:** FastAPI types check `date`/`time`; day outside 2 Jan–1 Feb → 404, decision time outside 06:00–11:00 → 422, missing actuals → 200 with `summary: null` and a `missing_actuals` list. Each maps to a screen state.
+
+## Step 7a – Frontend setup
+- **Vite + React + TypeScript:** standard fast setup; types catch wrong API field names before the browser does.
+- **Recharts** for the chart (React-shaped, dashed lines, shaded band, keyboard support) – installed in 7b.
+- **View state in the URL** (`?view=january&day=…&time=…`) with plain `URLSearchParams`: links can be shared and Back works, no router needed for two views.
+- **One plain CSS file** with colour variables and a dark-mode media query; no CSS framework.
+- **Dev proxy:** Vite forwards `/api` to FastAPI on :8000, so no CORS.

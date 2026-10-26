@@ -1,0 +1,86 @@
+:root {
+  --bg: #ffffff;
+  --surface: #f5f6f8;
+  --text: #1a1d23;
+  --muted: #5c6370;
+  --border: #d9dce1;
+  --accent: #1f5fbf;
+  --actual: #1a1d23;
+  --forecast: #1f5fbf;
+  --short: #c2410c; /* forecast too high: you bought too little */
+  --long: #0f766e; /* forecast too low */
+
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--bg);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14161a;
+    --surface: #1e2127;
+    --text: #e8eaed;
+    --muted: #9aa0a9;
+    --border: #353a42;
+    --accent: #7aa7f0;
+    --actual: #e8eaed;
+    --forecast: #7aa7f0;
+    --short: #fb923c;
+    --long: #2dd4bf;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+}
+
+.top,
+main {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+h1 {
+  margin: 24px 0 0;
+  font-size: 1.5rem;
+}
+
+.muted {
+  color: var(--muted);
+  margin: 4px 0 16px;
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 24px;
+}
+
+.tabs button {
+  font: inherit;
+  color: var(--muted);
+  background: none;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.tabs button[aria-current='page'] {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+  font-weight: 600;
+}
+
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
