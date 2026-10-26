@@ -63,3 +63,23 @@ def test_successful_answers_are_cacheable_errors_are_not():
     assert ok.headers["cache-control"] == "public, max-age=86400"
     bad = client.get("/api/day", params={"day": "2026-01-01"})
     assert "cache-control" not in bad.headers
+
+
+def test_missing_actuals_are_listed_and_left_out(monkeypatch):
+    from backend import data
+
+    full = data.actuals()
+    gone = {"2026-01-06T05:00:00Z", "2026-01-06T06:00:00Z"}
+    monkeypatch.setattr(data, "actuals", lambda: {k: v for k, v in full.items() if k not in gone})
+    body = client.get("/api/day", params={"day": "2026-01-06"}).json()
+    assert body["missing_actuals"] == sorted(gone)
+    assert body["summary"]["hours"] == 22
+
+
+def test_no_actuals_gives_null_summary(monkeypatch):
+    from backend import data
+
+    monkeypatch.setattr(data, "actuals", lambda: {})
+    body = client.get("/api/day", params={"day": "2026-01-06"}).json()
+    assert body["summary"] is None
+    assert len(body["missing_actuals"]) == 24

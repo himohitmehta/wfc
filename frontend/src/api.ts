@@ -63,7 +63,12 @@ async function getJson<T>(path: string, signal: AbortSignal): Promise<T> {
   const body = await res.json().catch(() => null)
   if (!res.ok) {
     // FastAPI sends our own errors as a string, type-check errors as a list
-    const detail = typeof body?.detail === 'string' ? body.detail : `Request failed (${res.status}).`
+    const detail =
+      typeof body?.detail === 'string'
+        ? body.detail
+        : res.status >= 500
+          ? "The data server isn't responding right now."
+          : `Request failed (${res.status}).`
     throw new ApiError(res.status, detail)
   }
   return body as T

@@ -43,9 +43,10 @@ function HourTooltip({ active, payload }: TooltipContentProps) {
 export function DayChart({ hours }: { hours: HourRow[] }) {
   return (
     <figure className="chart">
+      <div className="chart-box">
       <ComposedChart
         responsive
-        style={{ width: '100%', height: 320 }}
+        style={{ width: '100%', height: '100%' }}
         data={hours.map(toPoint)}
         margin={{ top: 8, right: 8, bottom: 0, left: 0 }}
         desc="Hourly wind forecast compared with actual output. Use left and right arrow keys to move between hours."
@@ -73,6 +74,7 @@ export function DayChart({ hours }: { hours: HourRow[] }) {
         />
         <Tooltip content={HourTooltip} cursor={{ stroke: 'var(--muted)' }} />
       </ComposedChart>
+      </div>
       <figcaption className="legend">
         <span className="key actual">Actual</span>
         <span className="key forecast">Forecast</span>

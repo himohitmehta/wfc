@@ -319,3 +319,89 @@ summary:focus-visible {
 .how li {
   margin: 8px 0;
 }
+
+/* ---------- States, sizing, phone width ---------- */
+
+.chart-box {
+  height: 320px;
+}
+
+.bar-box {
+  height: 220px;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+.notice.warn {
+  border-left-color: #ca8a04;
+}
+
+.notice .row {
+  flex-wrap: wrap;
+}
+
+.bone {
+  background: var(--surface);
+  border-radius: 6px;
+  margin-bottom: 12px;
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+.bone.line {
+  height: 1.4rem;
+  width: 90%;
+}
+
+.bone.line.short {
+  width: 55%;
+  margin-bottom: 20px;
+}
+
+.bone.tile-bone {
+  height: 72px;
+  margin: 0;
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bone {
+    animation: none;
+  }
+  .results[aria-busy='true'] {
+    transition: none;
+  }
+}
+
+@media (max-width: 600px) {
+  h1 {
+    font-size: 1.25rem;
+  }
+  .answer {
+    font-size: 1.1rem;
+  }
+  .chart-box {
+    height: 240px;
+  }
+  .bar-box {
+    height: 180px;
+  }
+  .tiles {
+    grid-template-columns: 1fr 1fr;
+  }
+  .tabs button {
+    flex: 1;
+  }
+  /* bigger tap targets */
+  button,
+  input,
+  select {
+    min-height: 40px;
+  }
+}

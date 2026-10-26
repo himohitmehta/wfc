@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { useApi, type DayResponse, type HourRow, type Summary } from './api'
 import { DayChart } from './DayChart'
 import { dayName, daySentence, direction, gw, hourOf, signedGw, ukTime } from './format'
-import { DEFAULT_TIME, FIRST_DAY, LAST_DAY, TIMES } from './pilot'
+import { DEFAULT_TIME, FIRST_DAY, LAST_DAY, OLD_FORECAST_HOURS, TIMES } from './pilot'
+import { LoadError, Skeleton } from './states'
 import type { Change } from './url'
 
 function addDays(day: string, n: number) {
@@ -11,39 +12,72 @@ function addDays(day: string, n: number) {
   return d.toISOString().slice(0, 10)
 }
 
-export function DayView({ day, time, onChange }: { day: string; time: string; onChange: (c: Change) => void }) {
-  const { data, error, loading, retry } = useApi<DayResponse>(`/api/day?day=${day}&decision_time=${time}`)
+const inPilot = (day: string) => FIRST_DAY <= day && day <= LAST_DAY
 
+export function DayView({ day, time, onChange }: { day: string; time: string; onChange: (c: Change) => void }) {
   return (
     <>
       <DayControls day={day} time={time} onChange={onChange} />
-      {error ? (
-        <div className="notice" role="alert">
-          <p>Couldn't load this day: {error.message}</p>
-          <button onClick={retry}>Try again</button>
-        </div>
-      ) : !data ? (
-        <p className="muted">Loading…</p>
-      ) : (
-        <div aria-busy={loading} className="results">
-          <p className="muted">
-            Forecast used: published {data.forecast_used.map(ukTime).join(' and ')} (UK time)
-          </p>
-          {data.summary ? (
-            <>
-              <p className="answer">
-                {daySentence(data.summary.avg_forecast, data.summary.avg_actual, data.summary.bias)}
-              </p>
-              <DayChart hours={data.hours} />
-              <NumberTiles s={data.summary} />
-              <BiggestMisses hours={data.hours} />
-            </>
-          ) : (
-            <p className="notice">Actual wind output isn't available yet for {dayName(data.day)}.</p>
-          )}
-        </div>
-      )}
+      {inPilot(day) ? <DayResults day={day} time={time} /> : <OutsidePilot day={day} onChange={onChange} />}
     </>
+  )
+}
+
+// Checked here instead of waiting for the API's 404, so a bad link never makes a request.
+function OutsidePilot({ day, onChange }: { day: string; onChange: (c: Change) => void }) {
+  return (
+    <div className="notice" role="alert">
+      <p>
+        {dayName(day)} {day.slice(0, 4)} is outside the pilot. Delivery days run from {dayName(FIRST_DAY)} to{' '}
+        {dayName(LAST_DAY)} 2026.
+      </p>
+      <div className="row">
+        <button onClick={() => onChange({ day: FIRST_DAY })}>Go to {dayName(FIRST_DAY)}</button>
+        <button onClick={() => onChange({ day: LAST_DAY })}>Go to {dayName(LAST_DAY)}</button>
+      </div>
+    </div>
+  )
+}
+
+function DayResults({ day, time }: { day: string; time: string }) {
+  const { data, error, loading, retry } = useApi<DayResponse>(`/api/day?day=${day}&decision_time=${time}`)
+
+  if (error) return <LoadError what="this day" error={error} retry={retry} retrying={loading} />
+  if (!data) return <Skeleton />
+
+  const missing = data.missing_actuals.length
+  return (
+    <div aria-busy={loading} className="results">
+      {data.forecast_used.length > 0 ? (
+        <p className="muted">Forecast used: published {data.forecast_used.map(ukTime).join(' and ')} (UK time)</p>
+      ) : (
+        <p className="notice">No wind forecast had been published by {time} the day before {dayName(data.day)}.</p>
+      )}
+      {data.forecast_age_hours !== null && data.forecast_age_hours > OLD_FORECAST_HOURS && (
+        <p className="notice warn" role="status">
+          Old forecast: it was published {Math.round(data.forecast_age_hours)} hours before your {time} decision time.
+          A newer run was probably missing, so the miss may look bigger than usual.
+        </p>
+      )}
+      {missing > 0 && data.summary && (
+        <p className="notice warn" role="status">
+          Actual output is missing for {missing} of {missing + data.hours.length} hours (
+          {data.missing_actuals.map(hourOf).join(', ')}). The numbers below use the other {data.hours.length} hours.
+        </p>
+      )}
+      {data.summary ? (
+        <>
+          <p className="answer">{daySentence(data.summary.avg_forecast, data.summary.avg_actual, data.summary.bias)}</p>
+          <DayChart hours={data.hours} />
+          <NumberTiles s={data.summary} />
+          <BiggestMisses hours={data.hours} />
+        </>
+      ) : (
+        data.forecast_used.length > 0 && (
+          <p className="notice">Actual wind output isn't available yet for {dayName(data.day)}, so there's nothing to compare.</p>
+        )
+      )}
+    </div>
   )
 }
 
@@ -53,7 +87,7 @@ function DayControls({ day, time, onChange }: { day: string; time: string; onCha
       <div className="field">
         <label htmlFor="day">Delivery day</label>
         <div className="row">
-          <button aria-label="Previous day" disabled={day <= FIRST_DAY} onClick={() => onChange({ day: addDays(day, -1) })}>
+          <button aria-label="Previous day" disabled={day <= FIRST_DAY} onClick={() => onChange({ day: day > LAST_DAY ? LAST_DAY : addDays(day, -1) })}>
             ‹
           </button>
           <input
@@ -64,7 +98,7 @@ function DayControls({ day, time, onChange }: { day: string; time: string; onCha
             value={day}
             onChange={(e) => e.target.value && onChange({ day: e.target.value })}
           />
-          <button aria-label="Next day" disabled={day >= LAST_DAY} onClick={() => onChange({ day: addDays(day, 1) })}>
+          <button aria-label="Next day" disabled={day >= LAST_DAY} onClick={() => onChange({ day: day < FIRST_DAY ? FIRST_DAY : addDays(day, 1) })}>
             ›
           </button>
         </div>
@@ -124,6 +158,7 @@ function BiggestMisses({ hours }: { hours: HourRow[] }) {
   return (
     <section>
       <h2>{showAll ? `All ${hours.length} hours` : 'Biggest misses'}</h2>
+      <div className="table-scroll">
       <table>
         <thead>
           <tr>
@@ -146,6 +181,7 @@ function BiggestMisses({ hours }: { hours: HourRow[] }) {
           ))}
         </tbody>
       </table>
+      </div>
       <button className="link" onClick={() => setShowAll(!showAll)}>
         {showAll ? 'Show biggest misses only' : `Show all ${hours.length} hours`}
       </button>

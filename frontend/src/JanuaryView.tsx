@@ -3,6 +3,7 @@ import { Bar, BarChart, CartesianGrid, Rectangle, Tooltip, XAxis, YAxis, type To
 import { useApi, type Group, type JanuaryResponse, type Summary } from './api'
 import { TimeField } from './DayView'
 import { dayName, direction, gw, signedGw } from './format'
+import { LoadError, Skeleton } from './states'
 import type { Change } from './url'
 
 const WIND_LEVELS: Record<number, string> = { 0: 'Under 5 GW', 5: '5–10 GW', 10: '10–15 GW', 15: '15 GW and over' }
@@ -16,12 +17,9 @@ export function JanuaryView({ time, onChange }: { time: string; onChange: (c: Ch
         <TimeField time={time} onChange={onChange} />
       </div>
       {error ? (
-        <div className="notice" role="alert">
-          <p>Couldn't load January: {error.message}</p>
-          <button onClick={retry}>Try again</button>
-        </div>
+        <LoadError what="January" error={error} retry={retry} retrying={loading} />
       ) : !data?.summary ? (
-        <p className="muted">Loading…</p>
+        <Skeleton chartClass="bar-box" tiles={4} />
       ) : (
         <div aria-busy={loading} className="results">
           <p className="answer">
@@ -125,6 +123,7 @@ function Breakdown<K extends string | number>(props: {
       <h2>{title}</h2>
       {hint && <p className="muted">{hint}</p>}
       {asTable ? (
+        <div className="table-scroll">
         <table>
           <thead>
             <tr>
@@ -155,10 +154,12 @@ function Breakdown<K extends string | number>(props: {
             ))}
           </tbody>
         </table>
+        </div>
       ) : (
-        <BarChart responsive style={{ width: '100%', height: 220 }} data={rows} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+        <div className="bar-box">
+        <BarChart responsive style={{ width: '100%', height: '100%' }} data={rows} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
           <CartesianGrid stroke="var(--border)" vertical={false} />
-          <XAxis dataKey="tick" tick={{ fill: 'var(--muted)', fontSize: 12 }} stroke="var(--border)" interval={0} />
+          <XAxis dataKey="tick" tick={{ fill: 'var(--muted)', fontSize: 12 }} stroke="var(--border)" interval="preserveStartEnd" />
           <YAxis unit=" GW" width={56} tick={{ fill: 'var(--muted)', fontSize: 12 }} stroke="var(--border)" />
           <Tooltip content={GroupTooltip} cursor={{ fill: 'var(--surface)' }} />
           <Bar
@@ -172,6 +173,7 @@ function Breakdown<K extends string | number>(props: {
             )}
           />
         </BarChart>
+        </div>
       )}
       <button className="link" onClick={() => setAsTable(!asTable)}>
         {asTable ? 'Show as chart' : 'Show as table'}

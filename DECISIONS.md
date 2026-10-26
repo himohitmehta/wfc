@@ -53,3 +53,10 @@
 - **React Query** for fetching: cached per URL (`staleTime: Infinity`, data is frozen), retries network/5xx errors but not our 4xx answers, keeps the old day on screen while the next loads. Replaces our hand-written hook.
 - **nuqs** for URL state: `view`, `day`, `time` are typed and checked; unknown times fall back to 09:50, defaults are left out of the URL, Back works. A real date outside the pilot is kept so the page can say so.
 - **HTTP cache:** successful API answers send `Cache-Control: public, max-age=86400` so browsers and Vercel's CDN can reuse them; errors are never cached.
+
+## Step 7d (part 2) – States, phone width, keyboard
+- **Loading:** grey skeleton boxes in the shape of the results on first load (page doesn't jump); faded old content while switching. Pulse animation off for reduced-motion users.
+- **Old forecast warning:** shown when the forecast used is more than 3 h older than the decision time (morning runs come every 2–3 h, so a missing run). Never fires on January data – oldest used is 2.5 h – it's a safety net.
+- **Outside the pilot:** checked in the browser before any request; clear message plus "Go to 2 Jan / 1 Feb" buttons, never a silent jump to another day.
+- **Couldn't load:** React Query retries twice, then a plain-English message with "Try again". **Missing actuals:** a note listing the missing hours, numbers use the rest.
+- **Keyboard:** Recharts' built-in layer – Tab to the chart, arrow keys move between hours. Known limit: the chart's focus box has no spoken name; the "Show all 24 hours" table is the screen-reader alternative.
