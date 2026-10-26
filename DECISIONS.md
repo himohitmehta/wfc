@@ -15,3 +15,8 @@
 - **Plain Python, no pandas:** data is small (~20k rows), code is easier to explain line by line, and the deploy stays light.
 - **pytest:** plain `assert` tests with clear failure messages; dev-only dependency.
 - **One day at a time:** `pick_forecasts(rows, day, decision_time)` returns the 24 hours, matching the Day view; the January view calls it per day.
+
+## Step 4 – Error numbers
+- **Actual on the hour:** pair each hourly forecast with the half-hour actual that starts on the hour (05:00, not 05:30), because it's an exact match and agrees with the reference results. Averaging 05:00+05:30 was the other option (MAE 2013 vs 1996 MW).
+- **90% band:** `statistics.quantiles(method="inclusive")`, the same as numpy and Excel `PERCENTILE.INC`, so anyone can check it in a spreadsheet.
+- **Sign:** error = forecast − actual, so positive means the forecast was too high and buying to it left you short. Caveat: curtailment can make forecasts look too high.
