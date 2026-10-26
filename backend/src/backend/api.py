@@ -2,6 +2,7 @@
 
 import csv
 import io
+import os
 from datetime import date, datetime, time, timedelta
 
 from fastapi import FastAPI, HTTPException, Response
@@ -22,8 +23,9 @@ app = FastAPI(title="Wind forecast check")
 @app.middleware("http")
 async def cache_successful_responses(request, call_next):
     response = await call_next(request)
-    # The snapshot is frozen, so browsers and the CDN may keep answers for a day; errors are never cached.
-    if response.status_code == 200:
+    # The snapshot is frozen, so browsers and the CDN may keep API answers for a day; errors are never cached.
+    # Only /api/: a cached index.html would show an old page after a redeploy.
+    if response.status_code == 200 and request.url.path.startswith("/api/"):
         response.headers["Cache-Control"] = "public, max-age=86400"
     return response
 
@@ -109,3 +111,9 @@ def january_csv(decision_time: time = DEFAULT_TIME):
         media_type="text/csv",
         headers={"Content-Disposition": "attachment; filename=wind-forecast-errors-january-2026.csv"},
     )
+
+
+# In the Docker image FastAPI also serves the built React app, so one container gives one URL.
+# On Vercel and in local dev the frontend is served separately, so this stays off.
+if frontend_dist := os.environ.get("FRONTEND_DIST"):
+    app.frontend("/", directory=frontend_dist)

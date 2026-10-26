@@ -58,6 +58,8 @@ Every choice and its reason is in [`DECISIONS.md`](DECISIONS.md). A UX review of
 │       ├── format.ts         All GW formatting and wording
 │       └── components/ui/    shadcn components (generated)
 ├── docs/ux-audit.md          UX audit and what was fixed
+├── Dockerfile                One container: builds the frontend, serves it with the API
+├── vercel.json               Vercel Services: /api -> backend, everything else -> frontend
 └── DECISIONS.md              Every decision and why
 ```
 
@@ -89,7 +91,14 @@ Refresh the data snapshot from Elexon (no API key needed):
 cd backend && uv run python scripts/fetch_raw.py
 ```
 
-**Docker:** _added in the deploy step_
+**Docker** (one container: FastAPI serves the API and the built React app):
+
+```bash
+docker build -t wind-forecast .
+docker run --rm -p 8000:8000 wind-forecast   # open http://localhost:8000
+```
+
+**Deploy:** Vercel, one project with two [Services](https://vercel.com/docs/services) (see `vercel.json`): `/api/*` goes to the FastAPI service in `backend/`, and everything else to the Vite build in `frontend/`. Pushing to `master` deploys to production.
 
 ## Data sources
 

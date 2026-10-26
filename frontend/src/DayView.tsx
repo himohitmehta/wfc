@@ -1,14 +1,14 @@
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, CircleAlert, Clock } from 'lucide-react'
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useApi, type DayResponse, type HourRow, type JanuaryResponse, type Summary } from './api'
-import { DayChart } from './DayChart'
 import {
   dayName,
   daySentence,
@@ -26,6 +26,9 @@ import { StatTiles, type Delta } from './StatTiles'
 import { LoadError, Notice, ResultsSkeleton } from './states'
 import { missColour, toggleLink } from './theme'
 import type { Change } from './url'
+
+// Recharts is the biggest dependency; load it after the numbers are on screen
+const DayChart = lazy(() => import('./DayChart').then((m) => ({ default: m.DayChart })))
 
 function addDays(day: string, n: number) {
   const d = new Date(`${day}T00:00:00Z`)
@@ -124,7 +127,9 @@ function DayResults({ day, time }: { day: string; time: string }) {
             </CardHeader>
             <CardContent className="space-y-4">
               <NumberTiles s={data.summary} january={january} />
-              <DayChart hours={data.hours} />
+              <Suspense fallback={<Skeleton className="h-60 sm:h-80" />}>
+                <DayChart hours={data.hours} />
+              </Suspense>
             </CardContent>
           </Card>
           <BiggestMisses hours={data.hours} />

@@ -79,3 +79,9 @@
 - **"Forecast published …" chip** on the chart panel: the hindsight-free rule is the main trust fact, so it's no longer small print.
 - **Dashed January-average line** on the by-day and by-hour charts, so unusual days stand out without reading numbers.
 - **Each chart/table in its own card** with a title and one-line subtitle.
+
+## Step 8 – Faster first load, Docker, Vercel
+- **Lazy loading:** each view and Recharts are separate chunks; the page shell and the day's numbers (~110 kB gz) paint before Recharts (~97 kB gz) arrives; hovering a tab preloads its chunk. Was one 222 kB gz file. Font subsets left alone – `unicode-range` means only the Latin file is ever downloaded.
+- **Vercel Services (one project):** `/api/*` → FastAPI service (`backend/`, entrypoint `src.backend.api:app`), everything else → Vite service (`frontend/`). Same site, no CORS; the API's 1-day cache header lets the CDN answer repeat requests. Services is beta but on all plans.
+- **One Docker container:** multi-stage build (Node builds React, Python 3.12 + uv runs FastAPI); FastAPI serves the built React app only when `FRONTEND_DIST` is set, so Vercel and local dev are unchanged.
+- **Cache header only on `/api/`:** a cached `index.html` would show an old page after a redeploy.
