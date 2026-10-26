@@ -42,3 +42,8 @@
 - **Gap shading in two colours:** orange where the forecast was too high (you were short), teal where too low. Colour is never the only signal: tooltip, tiles and table say "forecast too high/low" in words.
 - **GW with 1 decimal everywhere:** matches the one-sentence answer and is easy to say; exact MW stays in the CSV.
 - **Sentence uses bias, tiles show both:** "left you 2.1 GW short on average" is the direction (bias); "Average miss" tile is the size either way (MAE).
+
+## Step 7c – January accuracy view
+- **Bar chart per breakdown + "Show as table":** patterns are visible at a glance (windy days, 15 GW+ misses); the table gives exact numbers and keyboard/screen-reader access. Clicking a day bar (or its table row) opens that day.
+- **Bar = average miss, colour = direction:** one number per bar; orange = forecast mostly too high, teal = too low, same meaning as the Day view. Bias is in the tooltip and table.
+- **Decision time shared with the Day view** via `?time=`: shows how accuracy changes if you decide earlier, and both views never silently disagree.

@@ -1,5 +1,5 @@
-import { useApi, type JanuaryResponse } from './api'
 import { DayView, DEFAULT_TIME, FIRST_DAY } from './DayView'
+import { JanuaryView } from './JanuaryView'
 import { useUrlParams } from './url'
 
 export default function App() {
@@ -23,20 +23,8 @@ export default function App() {
         </nav>
       </header>
       <main>
-        {view === 'day' ? <DayView day={day} time={time} onChange={update} /> : <JanuaryView time={time} />}
+        {view === 'day' ? <DayView day={day} time={time} onChange={update} /> : <JanuaryView time={time} onChange={update} />}
       </main>
     </>
-  )
-}
-
-// Placeholder to prove the API wiring; built out in step 7c.
-function JanuaryView({ time }: { time: string }) {
-  const { data, error, loading } = useApi<JanuaryResponse>(`/api/january?decision_time=${time}`)
-  if (error) return <p>Couldn't load: {error.message}</p>
-  if (!data) return <p>Loading…</p>
-  return (
-    <p aria-busy={loading}>
-      {data.summary?.hours} hours compared, average miss {data.summary ? Math.round(data.summary.mae) : '–'} MW
-    </p>
   )
 }

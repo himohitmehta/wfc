@@ -277,3 +277,45 @@ button.link {
   padding: 8px 0;
   margin: 8px 0 32px;
 }
+
+/* ---------- January view ---------- */
+
+button.link.inline {
+  margin: 0;
+  padding: 0;
+  font-weight: 600;
+  text-align: left;
+}
+
+a.button {
+  display: inline-block;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 14px;
+  text-decoration: none;
+  margin-bottom: 48px;
+}
+
+a.button:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.how {
+  background: var(--surface);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin: 32px 0 16px;
+}
+
+.how summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.how li {
+  margin: 8px 0;
+}

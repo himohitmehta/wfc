@@ -17,7 +17,7 @@ function addDays(day: string, n: number) {
   return d.toISOString().slice(0, 10)
 }
 
-type Change = Record<string, string | null>
+export type Change = Record<string, string | null>
 
 export function DayView({ day, time, onChange }: { day: string; time: string; onChange: (c: Change) => void }) {
   const { data, error, loading, retry } = useApi<DayResponse>(`/api/day?day=${day}&decision_time=${time}`)
@@ -77,19 +77,26 @@ function DayControls({ day, time, onChange }: { day: string; time: string; onCha
           </button>
         </div>
       </div>
-      <div className="field">
-        <label htmlFor="time">Decision time (day before)</label>
-        <div className="row">
-          <select id="time" value={time} onChange={(e) => onChange({ time: e.target.value === DEFAULT_TIME ? null : e.target.value })}>
-            {TIMES.map((t) => (
-              <option key={t} value={t}>
-                {t}
-                {t === DEFAULT_TIME ? ' (auction close)' : ''}
-              </option>
-            ))}
-          </select>
-          {time !== DEFAULT_TIME && <button onClick={() => onChange({ time: null })}>Reset to 09:50</button>}
-        </div>
+      <TimeField time={time} onChange={onChange} />
+    </div>
+  )
+}
+
+/** Decision-time dropdown, shared by both views through the ?time= URL value. */
+export function TimeField({ time, onChange }: { time: string; onChange: (c: Change) => void }) {
+  return (
+    <div className="field">
+      <label htmlFor="time">Decision time (day before)</label>
+      <div className="row">
+        <select id="time" value={time} onChange={(e) => onChange({ time: e.target.value === DEFAULT_TIME ? null : e.target.value })}>
+          {TIMES.map((t) => (
+            <option key={t} value={t}>
+              {t}
+              {t === DEFAULT_TIME ? ' (auction close)' : ''}
+            </option>
+          ))}
+        </select>
+        {time !== DEFAULT_TIME && <button onClick={() => onChange({ time: null })}>Reset to 09:50</button>}
       </div>
     </div>
   )
