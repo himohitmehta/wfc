@@ -1,4 +1,4 @@
-import { ChevronDown, Download } from 'lucide-react'
+import { ChartColumn, ChevronDown, Download, Table2 } from 'lucide-react'
 import { useState } from 'react'
 import { Bar, BarChart, CartesianGrid, Rectangle, Tooltip, XAxis, YAxis, type TooltipContentProps } from 'recharts'
 import { Button } from '@/components/ui/button'
@@ -6,13 +6,16 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useApi, type Group, type JanuaryResponse, type Summary } from './api'
 import { TimeField } from './DayView'
-import { dayName, direction, gw, signedGw } from './format'
+import { dayName, dayShort, gw, hourOf, leanSentence, leansHigh, leansLow, missMeaning, missText } from './format'
 import { StatTiles } from './StatTiles'
 import { LoadError, ResultsSkeleton } from './states'
-import { axisProps, missColour, tooltipBox } from './theme'
+import { axisProps, missColour, toggleLink, tooltipBox } from './theme'
 import type { Change } from './url'
 
 const WIND_LEVELS: Record<number, string> = { 0: 'Under 5 GW', 5: '5–10 GW', 10: '10–15 GW', 15: '15 GW and over' }
+
+const daysWith = (groups: Group<string>[], test: (bias: number) => boolean) =>
+  groups.filter((g) => g.summary && test(g.summary.bias)).length
 
 export function JanuaryView({ time, onChange }: { time: string; onChange: (c: Change) => void }) {
   const { data, error, loading, retry } = useApi<JanuaryResponse>(`/api/january?decision_time=${time}`)
@@ -28,18 +31,28 @@ export function JanuaryView({ time, onChange }: { time: string; onChange: (c: Ch
         <ResultsSkeleton chartHeight="h-44 sm:h-56" tiles={4} />
       ) : (
         <div aria-busy={loading} className="space-y-4 transition-opacity aria-busy:opacity-60 motion-reduce:transition-none">
-          <p className="text-lg font-semibold sm:text-xl">
-            In 9 of every 10 hours, actual wind was within ±{gw(data.summary.p90)} of the forecast.
-          </p>
+          <div>
+            <p className="text-lg font-semibold sm:text-xl">
+              In 9 of every 10 hours, actual wind was within ±{gw(data.summary.p90)} of the forecast.
+            </p>
+            <p className="font-medium">
+              {leanSentence(
+                data.summary.bias,
+                daysWith(data.by_day, leansHigh),
+                daysWith(data.by_day, leansLow),
+                data.by_day.length,
+              )}
+            </p>
+          </div>
           <p className="text-sm text-muted-foreground">
-            Forecasts available at {time} the day before, delivery days {dayName(data.first_day)} to{' '}
-            {dayName(data.last_day)} 2026.
+            Newest forecast by {time} the day before · {dayShort(data.first_day)} – {dayShort(data.last_day)} 2026
           </p>
-          <Tiles s={data.summary} />
+          <Tiles data={data} onOpenDay={(day) => onChange({ view: null, day })} />
 
+          <PlanByWindLevel groups={data.by_wind_level_gw} />
           <Breakdown
             title="Average miss by day"
-            hint="Click a day to open it."
+            hint="Click a bar to see that day hour by hour."
             groups={data.by_day}
             label={(day) => dayName(day)}
             tick={(day) => String(Number(day.slice(8)))}
@@ -50,13 +63,6 @@ export function JanuaryView({ time, onChange }: { time: string; onChange: (c: Ch
             groups={data.by_hour}
             label={(hour) => hour}
             tick={(hour) => hour.slice(0, 2)}
-          />
-          <Breakdown
-            title="Average miss by forecast wind level"
-            hint="Grouped by what the forecast said, because that's what you know when buying."
-            groups={data.by_wind_level_gw}
-            label={(level) => WIND_LEVELS[level]}
-            tick={(level) => WIND_LEVELS[level]}
           />
 
           <HowWorkedOut time={time} />
@@ -72,32 +78,82 @@ export function JanuaryView({ time, onChange }: { time: string; onChange: (c: Ch
   )
 }
 
-function Tiles({ s }: { s: Summary }) {
+function Tiles({ data, onOpenDay }: { data: JanuaryResponse; onOpenDay: (day: string) => void }) {
+  const s = data.summary!
+  const low = leansLow(s.bias)
+  const biggestDay = s.biggest.startTime.slice(0, 10)
   return (
     <StatTiles
       tiles={[
-        ['Average miss', gw(s.mae), 'either way'],
-        ['Direction', signedGw(s.bias), direction(s.bias)],
-        ['Hours compared', String(s.hours), '31 delivery days'],
-        ['Biggest miss', signedGw(s.biggest.error), dayName(s.biggest.startTime.slice(0, 10))],
+        { label: 'Average miss', value: gw(s.mae), note: 'too high or too low' },
+        { label: 'Which way it missed', value: missText(s.bias), note: missMeaning(s.bias) },
+        {
+          label: low ? 'Days it ran low' : 'Days it ran high',
+          value: `${daysWith(data.by_day, low ? leansLow : leansHigh)} of ${data.by_day.length}`,
+          note: `${s.hours} hours compared`,
+        },
+        {
+          label: 'Biggest miss',
+          value: missText(s.biggest.error),
+          note: `${dayName(biggestDay)}, ${hourOf(s.biggest.startTime)}`,
+          action: { label: 'Open this day', onClick: () => onOpenDay(biggestDay) },
+        },
       ]}
     />
   )
 }
 
+/** The planning table: find tomorrow's forecast level, read the band to plan for and which way it usually missed. */
+function PlanByWindLevel({ groups }: { groups: Group<number>[] }) {
+  return (
+    <section className="pt-6">
+      <h2 className="text-base font-semibold">How far off, by what the forecast said</h2>
+      <p className="mb-2 text-sm text-muted-foreground">
+        Find tomorrow's forecast in the first column. In 9 of every 10 hours, actual wind was within the band shown.
+      </p>
+      <Table className="tabular-nums">
+        <TableHeader>
+          <TableRow>
+            <TableHead>Forecast says</TableHead>
+            <TableHead className="text-right">Plan for</TableHead>
+            <TableHead className="text-right">Usually ran</TableHead>
+            <TableHead className="text-right">Average miss</TableHead>
+            <TableHead className="text-right">Hours</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {groups.map(
+            ({ group, summary: s }) =>
+              s && (
+                <TableRow key={group}>
+                  <TableHead scope="row" className="font-medium text-foreground">
+                    {WIND_LEVELS[group]}
+                  </TableHead>
+                  <TableCell className="text-right font-semibold">±{gw(s.p90)}</TableCell>
+                  <TableCell className={`text-right ${missColour(s.bias)}`}>{missText(s.bias)}</TableCell>
+                  <TableCell className="text-right">{gw(s.mae)}</TableCell>
+                  <TableCell className="text-right text-muted-foreground">{s.hours}</TableCell>
+                </TableRow>
+              ),
+          )}
+        </TableBody>
+      </Table>
+    </section>
+  )
+}
+
 type Row<K> = { key: K; tick: string; label: string; mae: number; summary: Summary }
 
-function GroupTooltip({ active, payload }: TooltipContentProps) {
+function GroupTooltip({ active, payload, clickable }: TooltipContentProps & { clickable: boolean }) {
   const r = payload?.[0]?.payload as Row<unknown> | undefined
   if (!active || !r) return null
   return (
     <div className={tooltipBox}>
       <strong>{r.label}</strong>
       <div>Average miss {gw(r.summary.mae)}</div>
-      <div>
-        Direction {signedGw(r.summary.bias)} ({direction(r.summary.bias)})
-      </div>
+      <div>Usually ran {missText(r.summary.bias)}</div>
       <div className="text-muted-foreground">{r.summary.hours} hours</div>
+      {clickable && <div className="mt-1 text-muted-foreground">Click to see this day hour by hour</div>}
     </div>
   )
 }
@@ -127,7 +183,7 @@ function Breakdown<K extends string | number>(props: {
               <TableHead>Group</TableHead>
               <TableHead className="text-right">Hours</TableHead>
               <TableHead className="text-right">Average miss</TableHead>
-              <TableHead className="text-right">Direction</TableHead>
+              <TableHead className="text-right">Usually ran</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -135,7 +191,7 @@ function Breakdown<K extends string | number>(props: {
               <TableRow key={String(r.key)}>
                 <TableHead scope="row" className="font-medium text-foreground">
                   {onSelect ? (
-                    <Button variant="link" className="h-auto px-0" onClick={() => onSelect(r.key)}>
+                    <Button variant="link" className={`h-auto ${toggleLink}`} onClick={() => onSelect(r.key)}>
                       {r.label}
                     </Button>
                   ) : (
@@ -144,10 +200,7 @@ function Breakdown<K extends string | number>(props: {
                 </TableHead>
                 <TableCell className="text-right">{r.summary.hours}</TableCell>
                 <TableCell className="text-right">{gw(r.summary.mae)}</TableCell>
-                <TableCell className="text-right">
-                  <span className={missColour(r.summary.bias)}>{signedGw(r.summary.bias)}</span>{' '}
-                  <span className="text-muted-foreground">{direction(r.summary.bias)}</span>
-                </TableCell>
+                <TableCell className={`text-right ${missColour(r.summary.bias)}`}>{missText(r.summary.bias)}</TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -158,21 +211,24 @@ function Breakdown<K extends string | number>(props: {
           <CartesianGrid stroke="var(--border)" vertical={false} />
           <XAxis dataKey="tick" {...axisProps} interval="preserveStartEnd" />
           <YAxis unit=" GW" width={56} {...axisProps} />
-          <Tooltip content={GroupTooltip} cursor={{ fill: 'var(--muted)' }} />
+          <Tooltip content={(p) => <GroupTooltip {...p} clickable={!!onSelect} />} cursor={{ fill: 'var(--muted)' }} />
           <Bar
             dataKey="mae"
             isAnimationActive={false}
             cursor={onSelect ? 'pointer' : undefined}
             onClick={onSelect ? (bar) => onSelect((bar.payload as Row<K>).key) : undefined}
-            // colour each bar by direction: orange = forecast mostly too high
-            shape={(p) => (
-              <Rectangle {...p} fill={(p.payload as Row<K>).summary.bias > 0 ? 'var(--short)' : 'var(--long)'} />
-            )}
+            // colour each bar by direction, rounded like the text: orange = too high, teal = too low, grey = about right
+            shape={(p) => {
+              const bias = (p.payload as Row<K>).summary.bias
+              const fill = leansHigh(bias) ? 'var(--short)' : leansLow(bias) ? 'var(--long)' : 'var(--muted-foreground)'
+              return <Rectangle {...p} fill={fill} />
+            }}
           />
         </BarChart>
         </div>
       )}
-      <Button variant="link" className="px-0" onClick={() => setAsTable(!asTable)}>
+      <Button variant="link" className={toggleLink} onClick={() => setAsTable(!asTable)}>
+        {asTable ? <ChartColumn /> : <Table2 />}
         {asTable ? 'Show as chart' : 'Show as table'}
       </Button>
     </section>
@@ -202,12 +258,13 @@ function HowWorkedOut({ time }: { time: string }) {
           short.
         </li>
         <li>
-          <strong>Average miss</strong> is the average size of the miss, ignoring direction. <strong>Direction</strong> is
-          the average with direction kept (bias).
+          <strong>Average miss</strong> is the average size of the miss, too high or too low.{' '}
+          <strong>Which way it missed</strong> is the average with direction kept (bias): "too high" means actual wind
+          came in below the forecast.
         </li>
         <li>
-          <strong>±X GW in 9 of 10 hours</strong> is the 90th percentile of the size of the miss (same method as Excel
-          PERCENTILE.INC).
+          <strong>±X GW in 9 of 10 hours</strong> (and "Plan for") is the 90th percentile of the size of the miss (same
+          method as Excel PERCENTILE.INC), over every compared hour of the pilot.
         </li>
         <li>
           <strong>Caveat:</strong> actuals are metered output. When wind farms are told to turn down (curtailment), actual

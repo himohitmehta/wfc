@@ -5,13 +5,14 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { useApi, type DayResponse, type HourRow, type Summary } from './api'
+import { ChevronDown, ChevronUp } from 'lucide-react'
+import { useApi, type DayResponse, type HourRow, type JanuaryResponse, type Summary } from './api'
 import { DayChart } from './DayChart'
-import { dayName, daySentence, direction, gw, hourOf, signedGw, ukTime } from './format'
+import { dayName, daySentence, duration, gw, hourOf, missMeaning, missText, ukTime } from './format'
 import { DEFAULT_TIME, FIRST_DAY, LAST_DAY, OLD_FORECAST_HOURS, TIMES } from './pilot'
 import { StatTiles } from './StatTiles'
 import { LoadError, Notice, ResultsSkeleton } from './states'
-import { missColour } from './theme'
+import { missColour, toggleLink } from './theme'
 import type { Change } from './url'
 
 function addDays(day: string, n: number) {
@@ -58,6 +59,8 @@ function OutsidePilot({ day, onChange }: { day: string; onChange: (c: Change) =>
 
 function DayResults({ day, time }: { day: string; time: string }) {
   const { data, error, loading, retry } = useApi<DayResponse>(`/api/day?day=${day}&decision_time=${time}`)
+  // January's average gives the day's numbers a reference point; it's cached for the January tab too
+  const january = useApi<JanuaryResponse>(`/api/january?decision_time=${time}`).data?.summary
 
   if (error) return <LoadError what="this day" error={error} retry={retry} retrying={loading} />
   if (!data) return <ResultsSkeleton />
@@ -65,9 +68,16 @@ function DayResults({ day, time }: { day: string; time: string }) {
   const missing = data.missing_actuals.length
   return (
     <div aria-busy={loading} className="space-y-4 transition-opacity aria-busy:opacity-60 motion-reduce:transition-none">
+      <div>
+        <h2 className="text-lg font-semibold">{dayName(data.day)}</h2>
+        <p className="text-sm text-muted-foreground">
+          Decided at {time} on {dayName(data.deadline.slice(0, 10))}
+        </p>
+      </div>
       {data.forecast_used.length > 0 ? (
         <p className="text-sm text-muted-foreground">
-          Forecast used: published {data.forecast_used.map(ukTime).join(' and ')} (UK time)
+          Forecast used: published {data.forecast_used.map(ukTime).join(' and ')} UK time
+          {data.forecast_age_hours !== null && `, ${duration(data.forecast_age_hours)} before your ${time} deadline`}
         </p>
       ) : (
         <Notice title="No forecast">
@@ -92,7 +102,7 @@ function DayResults({ day, time }: { day: string; time: string }) {
             {daySentence(data.summary.avg_forecast, data.summary.avg_actual, data.summary.bias)}
           </p>
           <DayChart hours={data.hours} />
-          <NumberTiles s={data.summary} />
+          <NumberTiles s={data.summary} january={january} />
           <BiggestMisses hours={data.hours} />
         </>
       ) : (
@@ -177,15 +187,19 @@ export function TimeField({ time, onChange }: { time: string; onChange: (c: Chan
   )
 }
 
-function NumberTiles({ s }: { s: Summary }) {
+function NumberTiles({ s, january }: { s: Summary; january?: Summary | null }) {
   return (
     <StatTiles
       tiles={[
-        ['Average forecast', gw(s.avg_forecast)],
-        ['Average actual', gw(s.avg_actual)],
-        ['Average miss', gw(s.mae), 'either way'],
-        ['Direction', signedGw(s.bias), direction(s.bias)],
-        ['Biggest miss', signedGw(s.biggest.error), `at ${hourOf(s.biggest.startTime)}`],
+        { label: 'Average forecast', value: gw(s.avg_forecast) },
+        { label: 'Average actual', value: gw(s.avg_actual) },
+        {
+          label: 'Average miss',
+          value: gw(s.mae),
+          note: january ? `January average ${gw(january.mae)}` : 'too high or too low',
+        },
+        { label: 'Which way it missed', value: missText(s.bias), note: missMeaning(s.bias) },
+        { label: 'Biggest miss', value: missText(s.biggest.error), note: `at ${hourOf(s.biggest.startTime)}` },
       ]}
     />
   )
@@ -197,7 +211,7 @@ function BiggestMisses({ hours }: { hours: HourRow[] }) {
   const rows = showAll ? hours : [...hours].sort((a, b) => Math.abs(b.error) - Math.abs(a.error)).slice(0, 5)
   return (
     <section className="pt-4">
-      <h2 className="mb-2 text-base font-semibold">{showAll ? `All ${hours.length} hours` : 'Biggest misses'}</h2>
+      <h3 className="mb-2 text-base font-semibold">{showAll ? `All ${hours.length} hours` : 'Biggest misses'}</h3>
       <Table className="tabular-nums">
         <TableHeader>
           <TableRow>
@@ -215,15 +229,13 @@ function BiggestMisses({ hours }: { hours: HourRow[] }) {
               </TableHead>
               <TableCell className="text-right">{gw(h.forecast)}</TableCell>
               <TableCell className="text-right">{gw(h.actual)}</TableCell>
-              <TableCell className="text-right">
-                <span className={missColour(h.error)}>{signedGw(h.error)}</span>{' '}
-                <span className="text-muted-foreground">{direction(h.error)}</span>
-              </TableCell>
+              <TableCell className={`text-right ${missColour(h.error)}`}>{missText(h.error)}</TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
-      <Button variant="link" className="px-0" onClick={() => setShowAll(!showAll)}>
+      <Button variant="link" className={toggleLink} onClick={() => setShowAll(!showAll)}>
+        {showAll ? <ChevronUp /> : <ChevronDown />}
         {showAll ? 'Show biggest misses only' : `Show all ${hours.length} hours`}
       </Button>
     </section>

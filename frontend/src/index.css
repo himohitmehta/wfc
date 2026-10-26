@@ -151,3 +151,19 @@
     animation: none;
   }
 }
+
+/* Phones: 44px tap targets for every shadcn control (they default to 32px) */
+@media (max-width: 639px) {
+  [data-slot='button'],
+  [data-slot='input'],
+  [data-slot='native-select'],
+  [data-slot='tabs-trigger'] {
+    min-height: 44px;
+  }
+  [data-slot='button'][data-size^='icon'] {
+    min-width: 44px;
+  }
+  [data-slot='tabs-list'] {
+    height: auto;
+  }
+}

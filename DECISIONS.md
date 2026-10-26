@@ -66,3 +66,9 @@
 - **NativeSelect for decision time, native date box kept:** phones get their own pickers; both styled like shadcn.
 - **Charts stay our tested Recharts code**, only recoloured with theme variables (`--short`, `--long`, `--forecast`, `--actual`) so they match light and dark.
 - **Dark mode follows the device** (`prefers-color-scheme`), no toggle; `color-scheme: light dark` so native controls match.
+
+## UX audit fixes (docs/ux-audit.md)
+- **Plan by forecast level:** the 90% band depends on tomorrow's forecast (±1.9 GW under 5 GW, ±4.7 GW at 15 GW+), so January shows a "Plan for" table by wind level instead of one band.
+- **Show the lean:** the forecast ran high on 27 of 31 days (+1.7 GW; +2.8 GW at 15 GW+), so the headline says so – a one-way miss can be corrected.
+- **One wording for direction:** "X GW too high → you were short" / "too low → you bought too much"; no +/− signs on screen (CSV keeps them).
+- **Cuts:** "Hours compared" tile swapped for "Days it ran high"; by-hour chart moved below the planning table.

@@ -1,6 +1,6 @@
 import { Area, CartesianGrid, ComposedChart, Line, Tooltip, XAxis, YAxis, type TooltipContentProps } from 'recharts'
 import type { HourRow } from './api'
-import { direction, gw, hourOf, signedGw } from './format'
+import { gw, hourOf, missText } from './format'
 import { axisProps, tooltipBox } from './theme'
 
 type Point = {
@@ -34,9 +34,7 @@ function HourTooltip({ active, payload }: TooltipContentProps) {
       <strong>{p.hour}</strong>
       <div>Forecast {gw(p.forecast * 1000)}</div>
       <div>Actual {gw(p.actual * 1000)}</div>
-      <div>
-        Miss {signedGw(p.error)} ({direction(p.error)})
-      </div>
+      <div>Miss {missText(p.error)}</div>
     </div>
   )
 }
@@ -85,6 +83,7 @@ export function DayChart({ hours }: { hours: HourRow[] }) {
         </ComposedChart>
       </div>
       <figcaption className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+        <span>Hours in UK time</span>
         <Key colour="--actual" kind="line">
           Actual
         </Key>
@@ -95,7 +94,7 @@ export function DayChart({ hours }: { hours: HourRow[] }) {
           Forecast too high (you were short)
         </Key>
         <Key colour="--long" kind="fill">
-          Forecast too low
+          Forecast too low (you bought too much)
         </Key>
       </figcaption>
     </figure>
