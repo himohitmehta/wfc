@@ -27,6 +27,8 @@ def summarise(errors):
     absolute = [abs(x) for x in signed]
     return {
         "hours": len(signed),
+        "avg_forecast": mean(e["forecast"] for e in errors),
+        "avg_actual": mean(e["actual"] for e in errors),
         "mae": mean(absolute),
         "bias": mean(signed),
         "rmse": sqrt(mean(x * x for x in signed)),

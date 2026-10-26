@@ -24,8 +24,9 @@ def test_hour_without_actual_is_skipped():
 
 
 def test_summary_of_small_list():
-    s = summarise([{"error": e} for e in [-3, 1, 2]])
+    s = summarise([{"forecast": 10 + e, "actual": 10, "error": e} for e in [-3, 1, 2]])
     assert s["hours"] == 3
+    assert (s["avg_forecast"], s["avg_actual"]) == (10, 10)
     assert s["mae"] == 2
     assert s["bias"] == 0
     assert s["max_abs"] == 3
@@ -35,7 +36,7 @@ def test_summary_of_small_list():
 def test_reference_6_jan():
     errors = errors_for(date(2026, 1, 6))
     s = summarise(errors)
-    assert sum(e["actual"] for e in errors) / 24 == 9345.75
+    assert s["avg_actual"] == 9345.75
     assert s["mae"] == approx(2205.33, abs=0.01)
     assert s["biggest"]["error"] == 4316
     assert s["biggest"]["startTime"] == "2026-01-06T05:00:00Z"

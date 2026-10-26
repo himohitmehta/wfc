@@ -24,3 +24,8 @@
 ## Step 5 – Snapshot vs live data
 - **Snapshot file:** the app reads a saved copy of Elexon's January data, loaded once per server start. January 2026 is history, so this is fast, works when Elexon is down, and tests and site use the same numbers. Refresh with `scripts/fetch_raw.py`. Would switch to live + snapshot fallback if scope became "every day from now on".
 - **Raw JSON kept as-is:** 2.8 MB is small enough, and anyone can compare it with the Elexon links. Snapshot taken 2026-10-26.
+
+## Step 6 – FastAPI routes
+- **One route per screen:** `/api/day`, `/api/january`, `/api/january.csv`. Each screen makes one call and all maths stays in tested Python. Backend sends plain MW; frontend formats GW and wording.
+- **Wind level grouped by forecast:** it's what the trader knows at 09:50, so the table reads "when the forecast says 15+ GW, expect a miss of ~2.8 GW" (vs ~1.3 GW under 5 GW).
+- **Odd requests:** FastAPI types check `date`/`time`; day outside 2 Jan–1 Feb → 404, decision time outside 06:00–11:00 → 422, missing actuals → 200 with `summary: null` and a `missing_actuals` list. Each maps to a screen state.
