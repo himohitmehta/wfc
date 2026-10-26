@@ -56,3 +56,10 @@ def test_january_csv():
     lines = r.text.strip().splitlines()
     assert lines[0] == "startTime,publishTime,forecast,actual,error"
     assert len(lines) == 745
+
+
+def test_successful_answers_are_cacheable_errors_are_not():
+    ok = client.get("/api/day", params={"day": "2026-01-06"})
+    assert ok.headers["cache-control"] == "public, max-age=86400"
+    bad = client.get("/api/day", params={"day": "2026-01-01"})
+    assert "cache-control" not in bad.headers

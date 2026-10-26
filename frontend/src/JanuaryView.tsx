@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { Bar, BarChart, CartesianGrid, Rectangle, Tooltip, XAxis, YAxis, type TooltipContentProps } from 'recharts'
 import { useApi, type Group, type JanuaryResponse, type Summary } from './api'
-import { TimeField, type Change } from './DayView'
+import { TimeField } from './DayView'
 import { dayName, direction, gw, signedGw } from './format'
+import type { Change } from './url'
 
 const WIND_LEVELS: Record<number, string> = { 0: 'Under 5 GW', 5: '5–10 GW', 10: '10–15 GW', 15: '15 GW and over' }
 

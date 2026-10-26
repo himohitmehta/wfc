@@ -47,3 +47,9 @@
 - **Bar chart per breakdown + "Show as table":** patterns are visible at a glance (windy days, 15 GW+ misses); the table gives exact numbers and keyboard/screen-reader access. Clicking a day bar (or its table row) opens that day.
 - **Bar = average miss, colour = direction:** one number per bar; orange = forecast mostly too high, teal = too low, same meaning as the Day view. Bias is in the tooltip and table.
 - **Decision time shared with the Day view** via `?time=`: shows how accuracy changes if you decide earlier, and both views never silently disagree.
+- **shadcn/ui later, not now:** finish and test all features first (7d), then restyle with shadcn + Tailwind as one separate polish step before deploy, so it can be skipped if hours run short. Keep the native date box (better on phones).
+
+## Step 7d (part 1) – Fetching, URL state, caching
+- **React Query** for fetching: cached per URL (`staleTime: Infinity`, data is frozen), retries network/5xx errors but not our 4xx answers, keeps the old day on screen while the next loads. Replaces our hand-written hook.
+- **nuqs** for URL state: `view`, `day`, `time` are typed and checked; unknown times fall back to 09:50, defaults are left out of the URL, Back works. A real date outside the pilot is kept so the page can say so.
+- **HTTP cache:** successful API answers send `Cache-Control: public, max-age=86400` so browsers and Vercel's CDN can reuse them; errors are never cached.

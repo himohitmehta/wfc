@@ -19,6 +19,15 @@ DEFAULT_TIME = time(9, 50)  # N2EX day-ahead auction close
 app = FastAPI(title="Wind forecast check")
 
 
+@app.middleware("http")
+async def cache_successful_responses(request, call_next):
+    response = await call_next(request)
+    # The snapshot is frozen, so browsers and the CDN may keep answers for a day; errors are never cached.
+    if response.status_code == 200:
+        response.headers["Cache-Control"] = "public, max-age=86400"
+    return response
+
+
 def check_decision_time(decision_time):
     if not EARLIEST <= decision_time <= LATEST:
         raise HTTPException(422, f"decision_time must be between {EARLIEST:%H:%M} and {LATEST:%H:%M}")

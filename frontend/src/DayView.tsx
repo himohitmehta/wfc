@@ -2,22 +2,14 @@ import { useState } from 'react'
 import { useApi, type DayResponse, type HourRow, type Summary } from './api'
 import { DayChart } from './DayChart'
 import { dayName, daySentence, direction, gw, hourOf, signedGw, ukTime } from './format'
-
-// Same pilot window as backend/src/backend/api.py
-export const FIRST_DAY = '2026-01-02'
-export const LAST_DAY = '2026-02-01'
-export const DEFAULT_TIME = '09:50'
-
-// Every half hour from 06:00 to 11:00, plus the 09:50 auction close
-const TIMES = [...Array.from({ length: 11 }, (_, i) => `${String(6 + Math.floor(i / 2)).padStart(2, '0')}:${i % 2 ? '30' : '00'}`), DEFAULT_TIME].sort()
+import { DEFAULT_TIME, FIRST_DAY, LAST_DAY, TIMES } from './pilot'
+import type { Change } from './url'
 
 function addDays(day: string, n: number) {
   const d = new Date(`${day}T00:00:00Z`)
   d.setUTCDate(d.getUTCDate() + n)
   return d.toISOString().slice(0, 10)
 }
-
-export type Change = Record<string, string | null>
 
 export function DayView({ day, time, onChange }: { day: string; time: string; onChange: (c: Change) => void }) {
   const { data, error, loading, retry } = useApi<DayResponse>(`/api/day?day=${day}&decision_time=${time}`)
@@ -88,7 +80,7 @@ export function TimeField({ time, onChange }: { time: string; onChange: (c: Chan
     <div className="field">
       <label htmlFor="time">Decision time (day before)</label>
       <div className="row">
-        <select id="time" value={time} onChange={(e) => onChange({ time: e.target.value === DEFAULT_TIME ? null : e.target.value })}>
+        <select id="time" value={time} onChange={(e) => onChange({ time: e.target.value })}>
           {TIMES.map((t) => (
             <option key={t} value={t}>
               {t}

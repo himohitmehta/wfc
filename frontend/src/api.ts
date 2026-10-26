@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 
 // Shapes returned by backend/src/backend/api.py. All values are MW.
 export type HourRow = {
@@ -69,28 +69,17 @@ async function getJson<T>(path: string, signal: AbortSignal): Promise<T> {
   return body as T
 }
 
-/** Fetch `path` whenever it changes. Keeps the previous data while the next one loads. */
+/** Fetch `path` with React Query: cached per path, and the previous data stays on screen while the next one loads. */
 export function useApi<T>(path: string) {
-  const [attempt, setAttempt] = useState(0)
-  const key = `${path}#${attempt}` // changes on a new path or a "Try again"
-  const [result, setResult] = useState<{ key: string; data?: T; error?: ApiError }>()
-
-  useEffect(() => {
-    const controller = new AbortController()
-    getJson<T>(path, controller.signal).then(
-      (data) => setResult({ key, data }),
-      (error) => {
-        if (!controller.signal.aborted) setResult((r) => ({ key, data: r?.data, error }))
-      },
-    )
-    return () => controller.abort() // drop answers for a path we've moved away from
-  }, [path, key])
-
-  const loading = result?.key !== key // the last answer is for an older request
+  const query = useQuery<T, ApiError>({
+    queryKey: [path],
+    queryFn: ({ signal }) => getJson<T>(path, signal), // signal cancels requests we've moved away from
+    placeholderData: keepPreviousData,
+  })
   return {
-    data: result?.data,
-    error: loading ? undefined : result?.error,
-    loading,
-    retry: () => setAttempt((a) => a + 1),
+    data: query.data,
+    error: query.error,
+    loading: query.isFetching,
+    retry: () => query.refetch(),
   }
 }
