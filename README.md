@@ -7,7 +7,7 @@ A web app for a UK energy utility's day-ahead power buying team. Using only nati
 
 Scope: purchase decisions made in January 2026, which means delivery days **2 Jan – 1 Feb 2026**.
 
-**Live app:** _added after deploy_
+**Live app:** https://wfc-blond.vercel.app
 
 ---
 
