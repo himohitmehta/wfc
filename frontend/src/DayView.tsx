@@ -1,16 +1,28 @@
-import { ChevronLeft, ChevronRight, CircleAlert } from 'lucide-react'
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, CircleAlert, Clock } from 'lucide-react'
 import { useState } from 'react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { ChevronDown, ChevronUp } from 'lucide-react'
 import { useApi, type DayResponse, type HourRow, type JanuaryResponse, type Summary } from './api'
 import { DayChart } from './DayChart'
-import { dayName, daySentence, duration, gw, hourOf, missMeaning, missText, ukTime } from './format'
+import {
+  dayName,
+  daySentence,
+  duration,
+  gw,
+  hourOf,
+  leansHigh,
+  leansLow,
+  missMeaning,
+  missText,
+  ukTime,
+} from './format'
 import { DEFAULT_TIME, FIRST_DAY, LAST_DAY, OLD_FORECAST_HOURS, TIMES } from './pilot'
-import { StatTiles } from './StatTiles'
+import { StatTiles, type Delta } from './StatTiles'
 import { LoadError, Notice, ResultsSkeleton } from './states'
 import { missColour, toggleLink } from './theme'
 import type { Change } from './url'
@@ -67,19 +79,17 @@ function DayResults({ day, time }: { day: string; time: string }) {
 
   const missing = data.missing_actuals.length
   return (
-    <div aria-busy={loading} className="space-y-4 transition-opacity aria-busy:opacity-60 motion-reduce:transition-none">
+    <div
+      aria-busy={loading}
+      className="space-y-4 transition-opacity aria-busy:opacity-60 motion-reduce:transition-none"
+    >
       <div>
         <h2 className="text-lg font-semibold">{dayName(data.day)}</h2>
         <p className="text-sm text-muted-foreground">
           Decided at {time} on {dayName(data.deadline.slice(0, 10))}
         </p>
       </div>
-      {data.forecast_used.length > 0 ? (
-        <p className="text-sm text-muted-foreground">
-          Forecast used: published {data.forecast_used.map(ukTime).join(' and ')} UK time
-          {data.forecast_age_hours !== null && `, ${duration(data.forecast_age_hours)} before your ${time} deadline`}
-        </p>
-      ) : (
+      {data.forecast_used.length === 0 && (
         <Notice title="No forecast">
           No wind forecast had been published by {time} the day before {dayName(data.day)}.
         </Notice>
@@ -101,8 +111,22 @@ function DayResults({ day, time }: { day: string; time: string }) {
           <p className="text-lg font-semibold sm:text-xl">
             {daySentence(data.summary.avg_forecast, data.summary.avg_actual, data.summary.bias)}
           </p>
-          <DayChart hours={data.hours} />
-          <NumberTiles s={data.summary} january={january} />
+          {/* One panel: when the forecast was published, the numbers, then the picture behind them */}
+          <Card>
+            <CardHeader className="flex flex-wrap items-center justify-between gap-2">
+              <CardTitle>Forecast vs actual, hour by hour</CardTitle>
+              <Badge variant="outline" className="h-auto py-1 whitespace-normal">
+                <Clock />
+                Forecast published {data.forecast_used.map(ukTime).join(' and ')}
+                {data.forecast_age_hours !== null &&
+                  ` · ${duration(data.forecast_age_hours)} before your ${time} deadline`}
+              </Badge>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <NumberTiles s={data.summary} january={january} />
+              <DayChart hours={data.hours} />
+            </CardContent>
+          </Card>
           <BiggestMisses hours={data.hours} />
         </>
       ) : (
@@ -187,15 +211,25 @@ export function TimeField({ time, onChange }: { time: string; onChange: (c: Chan
   )
 }
 
+/** "▲ 0.2 GW vs Jan" – a bigger miss than usual is worse (orange), smaller is better (teal). */
+function vsJanuary(dayMae: number, januaryMae: number): Delta {
+  const diff = dayMae - januaryMae
+  if (leansHigh(diff)) return { text: `▲ ${gw(diff)} vs Jan`, tone: 'worse' }
+  if (leansLow(diff)) return { text: `▼ ${gw(-diff)} vs Jan`, tone: 'better' }
+  return { text: 'same as Jan', tone: 'same' }
+}
+
 function NumberTiles({ s, january }: { s: Summary; january?: Summary | null }) {
   return (
     <StatTiles
+      strip
       tiles={[
         { label: 'Average forecast', value: gw(s.avg_forecast) },
         { label: 'Average actual', value: gw(s.avg_actual) },
         {
           label: 'Average miss',
           value: gw(s.mae),
+          delta: january ? vsJanuary(s.mae, january.mae) : undefined,
           note: january ? `January average ${gw(january.mae)}` : 'too high or too low',
         },
         { label: 'Which way it missed', value: missText(s.bias), note: missMeaning(s.bias) },
@@ -210,34 +244,41 @@ function BiggestMisses({ hours }: { hours: HourRow[] }) {
   // top 5 by size of miss, or every hour in time order
   const rows = showAll ? hours : [...hours].sort((a, b) => Math.abs(b.error) - Math.abs(a.error)).slice(0, 5)
   return (
-    <section className="pt-4">
-      <h3 className="mb-2 text-base font-semibold">{showAll ? `All ${hours.length} hours` : 'Biggest misses'}</h3>
-      <Table className="tabular-nums">
-        <TableHeader>
-          <TableRow>
-            <TableHead>Hour</TableHead>
-            <TableHead className="text-right">Forecast</TableHead>
-            <TableHead className="text-right">Actual</TableHead>
-            <TableHead className="text-right">Miss</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {rows.map((h) => (
-            <TableRow key={h.startTime}>
-              <TableHead scope="row" className="font-medium text-foreground">
-                {hourOf(h.startTime)}
-              </TableHead>
-              <TableCell className="text-right">{gw(h.forecast)}</TableCell>
-              <TableCell className="text-right">{gw(h.actual)}</TableCell>
-              <TableCell className={`text-right ${missColour(h.error)}`}>{missText(h.error)}</TableCell>
+    <Card>
+      <CardHeader>
+        <CardTitle>{showAll ? `All ${hours.length} hours` : 'Biggest misses'}</CardTitle>
+        <CardDescription>
+          {showAll ? 'In time order.' : 'The 5 hours where the forecast was furthest off.'}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Table className="tabular-nums">
+          <TableHeader>
+            <TableRow>
+              <TableHead>Hour</TableHead>
+              <TableHead className="text-right">Forecast</TableHead>
+              <TableHead className="text-right">Actual</TableHead>
+              <TableHead className="text-right">Miss</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-      <Button variant="link" className={toggleLink} onClick={() => setShowAll(!showAll)}>
-        {showAll ? <ChevronUp /> : <ChevronDown />}
-        {showAll ? 'Show biggest misses only' : `Show all ${hours.length} hours`}
-      </Button>
-    </section>
+          </TableHeader>
+          <TableBody>
+            {rows.map((h) => (
+              <TableRow key={h.startTime}>
+                <TableHead scope="row" className="font-medium text-foreground">
+                  {hourOf(h.startTime)}
+                </TableHead>
+                <TableCell className="text-right">{gw(h.forecast)}</TableCell>
+                <TableCell className="text-right">{gw(h.actual)}</TableCell>
+                <TableCell className={`text-right ${missColour(h.error)}`}>{missText(h.error)}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+        <Button variant="link" className={toggleLink} onClick={() => setShowAll(!showAll)}>
+          {showAll ? <ChevronUp /> : <ChevronDown />}
+          {showAll ? 'Show biggest misses only' : `Show all ${hours.length} hours`}
+        </Button>
+      </CardContent>
+    </Card>
   )
 }

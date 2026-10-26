@@ -72,3 +72,10 @@
 - **Show the lean:** the forecast ran high on 27 of 31 days (+1.7 GW; +2.8 GW at 15 GW+), so the headline says so – a one-way miss can be corrected.
 - **One wording for direction:** "X GW too high → you were short" / "too low → you bought too much"; no +/− signs on screen (CSV keeps them).
 - **Cuts:** "Hours compared" tile swapped for "Days it ran high"; by-hour chart moved below the planning table.
+
+## UI patterns from Mobbin (Squarespace, Whop, Databricks, OpenAI, LangChain)
+- **Numbers on top of the chart in one panel:** read order is sentence → numbers → the picture behind them.
+- **"vs January" badge** on the day's average miss: orange = worse than usual, teal = better.
+- **"Forecast published …" chip** on the chart panel: the hindsight-free rule is the main trust fact, so it's no longer small print.
+- **Dashed January-average line** on the by-day and by-hour charts, so unusual days stand out without reading numbers.
+- **Each chart/table in its own card** with a title and one-line subtitle.

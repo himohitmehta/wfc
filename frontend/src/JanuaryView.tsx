@@ -1,7 +1,18 @@
 import { ChartColumn, ChevronDown, Download, Table2 } from 'lucide-react'
 import { useState } from 'react'
-import { Bar, BarChart, CartesianGrid, Rectangle, Tooltip, XAxis, YAxis, type TooltipContentProps } from 'recharts'
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Rectangle,
+  ReferenceLine,
+  Tooltip,
+  XAxis,
+  YAxis,
+  type TooltipContentProps,
+} from 'recharts'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useApi, type Group, type JanuaryResponse, type Summary } from './api'
@@ -30,7 +41,10 @@ export function JanuaryView({ time, onChange }: { time: string; onChange: (c: Ch
       ) : !data?.summary ? (
         <ResultsSkeleton chartHeight="h-44 sm:h-56" tiles={4} />
       ) : (
-        <div aria-busy={loading} className="space-y-4 transition-opacity aria-busy:opacity-60 motion-reduce:transition-none">
+        <div
+          aria-busy={loading}
+          className="space-y-4 transition-opacity aria-busy:opacity-60 motion-reduce:transition-none"
+        >
           <div>
             <p className="text-lg font-semibold sm:text-xl">
               In 9 of every 10 hours, actual wind was within ±{gw(data.summary.p90)} of the forecast.
@@ -57,12 +71,14 @@ export function JanuaryView({ time, onChange }: { time: string; onChange: (c: Ch
             label={(day) => dayName(day)}
             tick={(day) => String(Number(day.slice(8)))}
             onSelect={(day) => onChange({ view: null, day })}
+            average={data.summary.mae}
           />
           <Breakdown
             title="Average miss by hour of day (UK time)"
             groups={data.by_hour}
             label={(hour) => hour}
             tick={(hour) => hour.slice(0, 2)}
+            average={data.summary.mae}
           />
 
           <HowWorkedOut time={time} />
@@ -106,39 +122,43 @@ function Tiles({ data, onOpenDay }: { data: JanuaryResponse; onOpenDay: (day: st
 /** The planning table: find tomorrow's forecast level, read the band to plan for and which way it usually missed. */
 function PlanByWindLevel({ groups }: { groups: Group<number>[] }) {
   return (
-    <section className="pt-6">
-      <h2 className="text-base font-semibold">How far off, by what the forecast said</h2>
-      <p className="mb-2 text-sm text-muted-foreground">
-        Find tomorrow's forecast in the first column. In 9 of every 10 hours, actual wind was within the band shown.
-      </p>
-      <Table className="tabular-nums">
-        <TableHeader>
-          <TableRow>
-            <TableHead>Forecast says</TableHead>
-            <TableHead className="text-right">Plan for</TableHead>
-            <TableHead className="text-right">Usually ran</TableHead>
-            <TableHead className="text-right">Average miss</TableHead>
-            <TableHead className="text-right">Hours</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {groups.map(
-            ({ group, summary: s }) =>
-              s && (
-                <TableRow key={group}>
-                  <TableHead scope="row" className="font-medium text-foreground">
-                    {WIND_LEVELS[group]}
-                  </TableHead>
-                  <TableCell className="text-right font-semibold">±{gw(s.p90)}</TableCell>
-                  <TableCell className={`text-right ${missColour(s.bias)}`}>{missText(s.bias)}</TableCell>
-                  <TableCell className="text-right">{gw(s.mae)}</TableCell>
-                  <TableCell className="text-right text-muted-foreground">{s.hours}</TableCell>
-                </TableRow>
-              ),
-          )}
-        </TableBody>
-      </Table>
-    </section>
+    <Card>
+      <CardHeader>
+        <CardTitle>How far off, by what the forecast said</CardTitle>
+        <CardDescription>
+          Find tomorrow's forecast in the first column. In 9 of every 10 hours, actual wind was within the band shown.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Table className="tabular-nums">
+          <TableHeader>
+            <TableRow>
+              <TableHead>Forecast says</TableHead>
+              <TableHead className="text-right">Plan for</TableHead>
+              <TableHead className="text-right">Usually ran</TableHead>
+              <TableHead className="text-right">Average miss</TableHead>
+              <TableHead className="text-right">Hours</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {groups.map(
+              ({ group, summary: s }) =>
+                s && (
+                  <TableRow key={group}>
+                    <TableHead scope="row" className="font-medium text-foreground">
+                      {WIND_LEVELS[group]}
+                    </TableHead>
+                    <TableCell className="text-right font-semibold">±{gw(s.p90)}</TableCell>
+                    <TableCell className={`text-right ${missColour(s.bias)}`}>{missText(s.bias)}</TableCell>
+                    <TableCell className="text-right">{gw(s.mae)}</TableCell>
+                    <TableCell className="text-right text-muted-foreground">{s.hours}</TableCell>
+                  </TableRow>
+                ),
+            )}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
   )
 }
 
@@ -165,79 +185,113 @@ function Breakdown<K extends string | number>(props: {
   label: (k: K) => string
   tick: (k: K) => string
   onSelect?: (k: K) => void
+  average?: number // MW; drawn as a dashed "Jan avg" line so unusual bars stand out
 }) {
-  const { title, hint, groups, label, tick, onSelect } = props
+  const { title, hint, groups, label, tick, onSelect, average } = props
   const [asTable, setAsTable] = useState(false)
   const rows: Row<K>[] = groups.flatMap((g) =>
-    g.summary ? [{ key: g.group, tick: tick(g.group), label: label(g.group), mae: g.summary.mae / 1000, summary: g.summary }] : [],
+    g.summary
+      ? [{ key: g.group, tick: tick(g.group), label: label(g.group), mae: g.summary.mae / 1000, summary: g.summary }]
+      : [],
   )
 
   return (
-    <section className="pt-6">
-      <h2 className="text-base font-semibold">{title}</h2>
-      {hint && <p className="mb-2 text-sm text-muted-foreground">{hint}</p>}
-      {asTable ? (
-        <Table className="tabular-nums">
-          <TableHeader>
-            <TableRow>
-              <TableHead>Group</TableHead>
-              <TableHead className="text-right">Hours</TableHead>
-              <TableHead className="text-right">Average miss</TableHead>
-              <TableHead className="text-right">Usually ran</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.map((r) => (
-              <TableRow key={String(r.key)}>
-                <TableHead scope="row" className="font-medium text-foreground">
-                  {onSelect ? (
-                    <Button variant="link" className={`h-auto ${toggleLink}`} onClick={() => onSelect(r.key)}>
-                      {r.label}
-                    </Button>
-                  ) : (
-                    r.label
-                  )}
-                </TableHead>
-                <TableCell className="text-right">{r.summary.hours}</TableCell>
-                <TableCell className="text-right">{gw(r.summary.mae)}</TableCell>
-                <TableCell className={`text-right ${missColour(r.summary.bias)}`}>{missText(r.summary.bias)}</TableCell>
+    <Card>
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+        {(hint || average !== undefined) && (
+          <CardDescription>
+            {hint}
+            {average !== undefined && ` Dashed line: January average, ${gw(average)}.`}
+          </CardDescription>
+        )}
+      </CardHeader>
+      <CardContent>
+        {asTable ? (
+          <Table className="tabular-nums">
+            <TableHeader>
+              <TableRow>
+                <TableHead>Group</TableHead>
+                <TableHead className="text-right">Hours</TableHead>
+                <TableHead className="text-right">Average miss</TableHead>
+                <TableHead className="text-right">Usually ran</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      ) : (
-        <div className="h-44 sm:h-56">
-        <BarChart responsive style={{ width: '100%', height: '100%' }} data={rows} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
-          <CartesianGrid stroke="var(--border)" vertical={false} />
-          <XAxis dataKey="tick" {...axisProps} interval="preserveStartEnd" />
-          <YAxis unit=" GW" width={56} {...axisProps} />
-          <Tooltip content={(p) => <GroupTooltip {...p} clickable={!!onSelect} />} cursor={{ fill: 'var(--muted)' }} />
-          <Bar
-            dataKey="mae"
-            isAnimationActive={false}
-            cursor={onSelect ? 'pointer' : undefined}
-            onClick={onSelect ? (bar) => onSelect((bar.payload as Row<K>).key) : undefined}
-            // colour each bar by direction, rounded like the text: orange = too high, teal = too low, grey = about right
-            shape={(p) => {
-              const bias = (p.payload as Row<K>).summary.bias
-              const fill = leansHigh(bias) ? 'var(--short)' : leansLow(bias) ? 'var(--long)' : 'var(--muted-foreground)'
-              return <Rectangle {...p} fill={fill} />
-            }}
-          />
-        </BarChart>
-        </div>
-      )}
-      <Button variant="link" className={toggleLink} onClick={() => setAsTable(!asTable)}>
-        {asTable ? <ChartColumn /> : <Table2 />}
-        {asTable ? 'Show as chart' : 'Show as table'}
-      </Button>
-    </section>
+            </TableHeader>
+            <TableBody>
+              {rows.map((r) => (
+                <TableRow key={String(r.key)}>
+                  <TableHead scope="row" className="font-medium text-foreground">
+                    {onSelect ? (
+                      <Button variant="link" className={`h-auto ${toggleLink}`} onClick={() => onSelect(r.key)}>
+                        {r.label}
+                      </Button>
+                    ) : (
+                      r.label
+                    )}
+                  </TableHead>
+                  <TableCell className="text-right">{r.summary.hours}</TableCell>
+                  <TableCell className="text-right">{gw(r.summary.mae)}</TableCell>
+                  <TableCell className={`text-right ${missColour(r.summary.bias)}`}>
+                    {missText(r.summary.bias)}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        ) : (
+          <div className="h-44 sm:h-56">
+            <BarChart
+              responsive
+              style={{ width: '100%', height: '100%' }}
+              data={rows}
+              margin={{ top: 8, right: 8, bottom: 0, left: 0 }}
+            >
+              <CartesianGrid stroke="var(--border)" vertical={false} />
+              <XAxis dataKey="tick" {...axisProps} interval="preserveStartEnd" />
+              <YAxis unit=" GW" width={56} {...axisProps} />
+              <Tooltip
+                content={(p) => <GroupTooltip {...p} clickable={!!onSelect} />}
+                cursor={{ fill: 'var(--muted)' }}
+              />
+              {average !== undefined && (
+                <ReferenceLine
+                  y={average / 1000}
+                  stroke="var(--foreground)"
+                  strokeDasharray="4 4"
+                  strokeOpacity={0.6}
+                />
+              )}
+              <Bar
+                dataKey="mae"
+                isAnimationActive={false}
+                cursor={onSelect ? 'pointer' : undefined}
+                onClick={onSelect ? (bar) => onSelect((bar.payload as Row<K>).key) : undefined}
+                // colour each bar by direction, rounded like the text: orange = too high, teal = too low, grey = about right
+                shape={(p) => {
+                  const bias = (p.payload as Row<K>).summary.bias
+                  const fill = leansHigh(bias)
+                    ? 'var(--short)'
+                    : leansLow(bias)
+                      ? 'var(--long)'
+                      : 'var(--muted-foreground)'
+                  return <Rectangle {...p} fill={fill} />
+                }}
+              />
+            </BarChart>
+          </div>
+        )}
+        <Button variant="link" className={toggleLink} onClick={() => setAsTable(!asTable)}>
+          {asTable ? <ChartColumn /> : <Table2 />}
+          {asTable ? 'Show as chart' : 'Show as table'}
+        </Button>
+      </CardContent>
+    </Card>
   )
 }
 
 function HowWorkedOut({ time }: { time: string }) {
   return (
-    <Collapsible className="mt-8 rounded-xl bg-card px-4 py-2 ring-1 ring-foreground/10">
+    <Collapsible className="rounded-xl bg-card px-4 py-2 ring-1 ring-foreground/10">
       <CollapsibleTrigger asChild>
         <Button variant="ghost" className="group -mx-2 w-full justify-between px-2">
           How these numbers are worked out
@@ -245,32 +299,32 @@ function HowWorkedOut({ time }: { time: string }) {
         </Button>
       </CollapsibleTrigger>
       <CollapsibleContent>
-      <ul className="list-disc space-y-2 py-2 pl-5 text-sm">
-        <li>
-          <strong>Forecast used:</strong> for each delivery hour, the newest Elexon wind forecast (WINDFOR) published at or
-          before {time} UK time the day before. January is GMT, so UK time is UTC.
-        </li>
-        <li>
-          <strong>Actual:</strong> Elexon metered wind output (FUELHH) for the half hour starting on that hour.
-        </li>
-        <li>
-          <strong>Miss</strong> = forecast − actual. Positive means the forecast was too high, so buying to it left you
-          short.
-        </li>
-        <li>
-          <strong>Average miss</strong> is the average size of the miss, too high or too low.{' '}
-          <strong>Which way it missed</strong> is the average with direction kept (bias): "too high" means actual wind
-          came in below the forecast.
-        </li>
-        <li>
-          <strong>±X GW in 9 of 10 hours</strong> (and "Plan for") is the 90th percentile of the size of the miss (same
-          method as Excel PERCENTILE.INC), over every compared hour of the pilot.
-        </li>
-        <li>
-          <strong>Caveat:</strong> actuals are metered output. When wind farms are told to turn down (curtailment), actual
-          output is lower than the wind allowed, so the forecast can look too high.
-        </li>
-      </ul>
+        <ul className="list-disc space-y-2 py-2 pl-5 text-sm">
+          <li>
+            <strong>Forecast used:</strong> for each delivery hour, the newest Elexon wind forecast (WINDFOR) published
+            at or before {time} UK time the day before. January is GMT, so UK time is UTC.
+          </li>
+          <li>
+            <strong>Actual:</strong> Elexon metered wind output (FUELHH) for the half hour starting on that hour.
+          </li>
+          <li>
+            <strong>Miss</strong> = forecast − actual. Positive means the forecast was too high, so buying to it left
+            you short.
+          </li>
+          <li>
+            <strong>Average miss</strong> is the average size of the miss, too high or too low.{' '}
+            <strong>Which way it missed</strong> is the average with direction kept (bias): "too high" means actual wind
+            came in below the forecast.
+          </li>
+          <li>
+            <strong>±X GW in 9 of 10 hours</strong> (and "Plan for") is the 90th percentile of the size of the miss
+            (same method as Excel PERCENTILE.INC), over every compared hour of the pilot.
+          </li>
+          <li>
+            <strong>Caveat:</strong> actuals are metered output. When wind farms are told to turn down (curtailment),
+            actual output is lower than the wind allowed, so the forecast can look too high.
+          </li>
+        </ul>
       </CollapsibleContent>
     </Collapsible>
   )

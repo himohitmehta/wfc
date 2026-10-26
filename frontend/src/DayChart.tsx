@@ -69,7 +69,14 @@ export function DayChart({ hours }: { hours: HourRow[] }) {
           <YAxis unit=" GW" width={56} tickFormatter={(v: number) => v.toFixed(0)} {...axisProps} />
           <Area dataKey="tooHigh" fill="var(--short)" fillOpacity={0.25} stroke="none" isAnimationActive={false} />
           <Area dataKey="tooLow" fill="var(--long)" fillOpacity={0.25} stroke="none" isAnimationActive={false} />
-          <Line dataKey="actual" name="Actual" stroke="var(--actual)" strokeWidth={2} dot={false} isAnimationActive={false} />
+          <Line
+            dataKey="actual"
+            name="Actual"
+            stroke="var(--actual)"
+            strokeWidth={2}
+            dot={false}
+            isAnimationActive={false}
+          />
           <Line
             dataKey="forecast"
             name="Forecast"
