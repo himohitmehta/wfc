@@ -1,11 +1,9 @@
-import json
 from datetime import date, time
-from pathlib import Path
 
+from backend import data
 from backend.forecast import pick_forecasts
 
 DAY = date(2026, 1, 6)
-RAW = Path(__file__).resolve().parent.parent / "data" / "raw" / "forecasts.json"
 
 
 def row(publish, start, mw):
@@ -52,7 +50,7 @@ def test_hours_outside_the_day_are_left_out():
 
 
 def test_real_data_6_jan():
-    picked = pick_forecasts(json.loads(RAW.read_text()), DAY, time(9, 50))
+    picked = pick_forecasts(data.forecasts(), DAY, time(9, 50))
     assert len(picked) == 24
     assert {p["publishTime"] for p in picked} == {"2026-01-05T09:30:00Z"}
     assert sum(p["generation"] for p in picked) / 24 == 11464.5

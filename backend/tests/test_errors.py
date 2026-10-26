@@ -1,19 +1,14 @@
-import json
 from datetime import date, time, timedelta
-from pathlib import Path
 
 from pytest import approx
 
+from backend import data
 from backend.errors import compute_errors, summarise
 from backend.forecast import pick_forecasts
 
-RAW = Path(__file__).resolve().parent.parent / "data" / "raw"
-FORECASTS = json.loads((RAW / "forecasts.json").read_text())
-ACTUALS = {r["startTime"]: r["generation"] for r in json.loads((RAW / "actuals.json").read_text())}
-
 
 def errors_for(day):
-    return compute_errors(pick_forecasts(FORECASTS, day, time(9, 50)), ACTUALS)
+    return compute_errors(pick_forecasts(data.forecasts(), day, time(9, 50)), data.actuals())
 
 
 def test_error_is_forecast_minus_actual_on_the_hour():

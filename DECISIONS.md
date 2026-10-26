@@ -20,3 +20,7 @@
 - **Actual on the hour:** pair each hourly forecast with the half-hour actual that starts on the hour (05:00, not 05:30), because it's an exact match and agrees with the reference results. Averaging 05:00+05:30 was the other option (MAE 2013 vs 1996 MW).
 - **90% band:** `statistics.quantiles(method="inclusive")`, the same as numpy and Excel `PERCENTILE.INC`, so anyone can check it in a spreadsheet.
 - **Sign:** error = forecast − actual, so positive means the forecast was too high and buying to it left you short. Caveat: curtailment can make forecasts look too high.
+
+## Step 5 – Snapshot vs live data
+- **Snapshot file:** the app reads a saved copy of Elexon's January data, loaded once per server start. January 2026 is history, so this is fast, works when Elexon is down, and tests and site use the same numbers. Refresh with `scripts/fetch_raw.py`. Would switch to live + snapshot fallback if scope became "every day from now on".
+- **Raw JSON kept as-is:** 2.8 MB is small enough, and anyone can compare it with the Elexon links. Snapshot taken 2026-10-26.
