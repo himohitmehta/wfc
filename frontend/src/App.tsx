@@ -1,13 +1,11 @@
-import { useApi, type DayResponse, type JanuaryResponse } from './api'
+import { useApi, type JanuaryResponse } from './api'
+import { DayView, DEFAULT_TIME, FIRST_DAY } from './DayView'
 import { useUrlParams } from './url'
-
-export const DEFAULT_DAY = '2026-01-02'
-export const DEFAULT_TIME = '09:50'
 
 export default function App() {
   const [params, update] = useUrlParams()
   const view = params.get('view') === 'january' ? 'january' : 'day'
-  const day = params.get('day') ?? DEFAULT_DAY
+  const day = params.get('day') ?? FIRST_DAY
   const time = params.get('time') ?? DEFAULT_TIME
 
   return (
@@ -24,24 +22,14 @@ export default function App() {
           </button>
         </nav>
       </header>
-      <main>{view === 'day' ? <DayView day={day} time={time} /> : <JanuaryView time={time} />}</main>
+      <main>
+        {view === 'day' ? <DayView day={day} time={time} onChange={update} /> : <JanuaryView time={time} />}
+      </main>
     </>
   )
 }
 
-// Placeholders to prove the API wiring; built out in steps 7b and 7c.
-function DayView({ day, time }: { day: string; time: string }) {
-  const { data, error, loading } = useApi<DayResponse>(`/api/day?day=${day}&decision_time=${time}`)
-  if (error) return <p>Couldn't load: {error.message}</p>
-  if (!data) return <p>Loading…</p>
-  return (
-    <p aria-busy={loading}>
-      {data.day}: forecast used published {data.forecast_used.join(', ')}, average miss{' '}
-      {data.summary ? Math.round(data.summary.mae) : '–'} MW
-    </p>
-  )
-}
-
+// Placeholder to prove the API wiring; built out in step 7c.
 function JanuaryView({ time }: { time: string }) {
   const { data, error, loading } = useApi<JanuaryResponse>(`/api/january?decision_time=${time}`)
   if (error) return <p>Couldn't load: {error.message}</p>

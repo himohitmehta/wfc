@@ -36,3 +36,9 @@
 - **View state in the URL** (`?view=january&day=…&time=…`) with plain `URLSearchParams`: links can be shared and Back works, no router needed for two views.
 - **One plain CSS file** with colour variables and a dark-mode media query; no CSS framework.
 - **Dev proxy:** Vite forwards `/api` to FastAPI on :8000, so no CORS.
+
+## Step 7b – Day view
+- **Day picker:** native date box limited to 2 Jan–1 Feb plus ‹ › buttons: phones get a native picker, stepping days is fast, works by keyboard.
+- **Gap shading in two colours:** orange where the forecast was too high (you were short), teal where too low. Colour is never the only signal: tooltip, tiles and table say "forecast too high/low" in words.
+- **GW with 1 decimal everywhere:** matches the one-sentence answer and is easy to say; exact MW stays in the CSV.
+- **Sentence uses bias, tiles show both:** "left you 2.1 GW short on average" is the direction (bias); "Average miss" tile is the size either way (MAE).
